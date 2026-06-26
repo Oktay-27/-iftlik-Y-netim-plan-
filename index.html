@@ -4,15 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Çiftlik Yönetimi</title>
-
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js" crossorigin></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.22.20/babel.min.js" crossorigin></script>
-
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.12/babel.min.js" crossorigin></script>
     <style>
-        body { margin: 0; padding: 0; background-color: #F7F3EE; }
-        
-        /* Mobil kaydırma çubuğu gizleme */
+        body { margin: 0; padding: 0; background-color: #F7F3EE; font-family: sans-serif; }
         div::-webkit-scrollbar { height: 4px; }
         div::-webkit-scrollbar-thumb { background: #E2D9CD; border-radius: 10px; }
     </style>
@@ -20,50 +16,285 @@
 <body>
     <div id="root"></div>
 
-    <script type="text/babel" data-presets="react,stage-2">
-        const { useState, useEffect, useRef } = React;
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+
         const APP_ADI = "Çiftlik Yönetimi";
 
-        // ... Durum tanımlamaları (agirlikGecmisi: "koyun_agirlik" vb.) ...
-
-        // KESİNLİKLE DEĞİŞMEYEN FONKSİYONLAR (Sadece ==> hatası => olarak düzeltildi ve async eklendi)
-        const loadData = async (key) => {
-            try { 
-                const r = localStorage.getItem(key); 
-                return r ? JSON.parse(r) : []; 
-            } catch (e) { 
-                return []; 
-            }
+        const STORAGE_KEYS = {
+          hayvanlar: "koyun_hayvanlar",
+          islemler: "koyun_islemler",
+          rasyonlar: "koyun_rasyonlar",
+          saglik: "koyun_saglik",
+          dogumlar: "koyun_dogumlar",
+          dollenme: "koyun_dollenme",
+          agirlikGecmisi: "koyun_agirlik",
         };
 
-        const saveData = async (key, data) => {
-            try { 
-                localStorage.setItem(key, JSON.stringify(data)); 
-            } catch (e) { 
-                console.error(e); 
-            }
+        const loadData = (key) => {
+          try { const r = localStorage.getItem(key); return r ? JSON.parse(r) : []; } catch { return []; }
+        };
+        const saveData = (key, data) => {
+          try { localStorage.setItem(key, JSON.stringify(data)); } catch (e) { console.error(e); }
         };
 
-        // BİREBİR İLK ARAYÜZ TASARIMINIZ (Georgia yazı tipi ve orijinal renkler korundu)
+        const bugun = new Date().toISOString().split("T")[0];
+        const kalanGun = (t) => { 
+          if (!t) return null; 
+          return Math.ceil((new Date(t).setHours(0,0,0,0) - new Date().setHours(0,0,0,0))/(1000*60*60*24)); 
+        };
+
+        const R = {
+          zemin:"#F7F3EE", kart:"#FFFFFF", birincil:"#5C7A4E", ikincil:"#8FAF7E",
+          vurgu:"#C87137", metin:"#2C2416", metinAcik:"#7A6B55", sinir:"#E2D9CD",
+          tehlike:"#C0392B", uyari:"#E67E22",
+        };
+
         const S = {
-            app: {
-                minHeight: "100vh",
-                background: R.zemin,
-                fontFamily: 'Georgia', // Arayüzün aynı kalması için ilk yazı tipini koruduk
-                color: R.metin
-            },
-            header: {
-                background: R.birincil,
-                color: "#fff",
-                padding: "16px 24px",
-                display: "flex",
-                alignItems: "center",
-                gap: "12px",
-                boxShadow: "0 2px 8px"
-            }
+          app:{minHeight:"100vh",background:R.zemin,color:R.metin},
+          header:{background:R.birincil,color:"#fff",padding:"16px 24px",display:"flex",alignItems:"center",gap:12,boxShadow:"0 2px 8px rgba(0,0,0,0.15)"},
+          nav:{background:"#fff",borderBottom:`1px solid ${R.sinir}`,display:"flex",overflowX:"auto",padding:"0 16px"},
+          navBtn:(a)=>({padding:"12px 14px",border:"none",background:"none",cursor:"pointer",fontFamily:"inherit",fontSize:13,fontWeight:a?"700":"400",color:a?R.birincil:R.metinAcik,borderBottom:a?`3px solid ${R.birincil}`:"3px solid transparent",whiteSpace:"nowrap"}),
+          content:{padding:"20px 16px",maxWidth:900,margin:"0 auto"},
+          card:{background:R.kart,borderRadius:10,border:`1px solid ${R.sinir}`,padding:20,marginBottom:16,boxShadow:"0 1px 4px rgba(0,0,0,0.06)"},
+          row:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16},
+          h2:{margin:0,fontSize:18},
+          btnP:{background:R.birincil,color:"#fff",border:"none",borderRadius:7,padding:"9px 18px",cursor:"pointer",fontFamily:"inherit",fontSize:14,fontWeight:"600"},
+          btnS:{background:R.sinir,color:R.metin,border:"none",borderRadius:7,padding:"7px 14px",cursor:"pointer",fontFamily:"inherit",fontSize:13},
+          btnD:{background:R.tehlike,color:"#fff",border:"none",borderRadius:7,padding:"7px 14px",cursor:"pointer",fontFamily:"inherit",fontSize:13},
+          input:{width:"100%",padding:"9px 12px",border:`1px solid ${R.sinir}`,borderRadius:7,fontFamily:"inherit",fontSize:14,background:R.zemin,color:R.metin,boxSizing:"border-box"},
+          label:{display:"block",fontSize:12,fontWeight:"600",color:R.metinAcik,marginBottom:4,textTransform:"uppercase",letterSpacing:0.5},
+          g2:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12},
+          g3:{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12},
+          table:{width:"100%",borderCollapse:"collapse",fontSize:14},
+          th:{textAlign:"left",padding:"10px 12px",background:R.zemin,borderBottom:`2px solid ${R.sinir}`,fontSize:12,fontWeight:"700",color:R.metinAcik,textTransform:"uppercase",letterSpacing:0.4},
+          td:{padding:"10px 12px",borderBottom:`1px solid ${R.sinir}`,verticalAlign:"middle"},
+          badge:(c)=>({display:"inline-block",padding:"3px 10px",borderRadius:20,fontSize:12,fontWeight:"600",background:c+"22",color:c}),
+          modal:{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000,padding:16},
+          modalBox:{background:"#fff",borderRadius:12,padding:24,width:"100%",maxWidth:520,maxHeight:"90vh",overflowY:"auto",boxShadow:"0 8px 32px rgba(0,0,0,0.18)"},
+          sayac:(c)=>({background:c,borderRadius:12,padding:"16px 20px",textAlign:"center",minWidth:80}),
+          sayacRakam:{fontSize:42,fontWeight:"900",color:"#fff",lineHeight:1},
+          sayacEtiket:{fontSize:11,color:"rgba(255,255,255,0.85)",marginTop:4,textTransform:"uppercase",letterSpacing:0.5},
         };
 
-        // ... Kodunuzun geri kalan kısmı ...
+        function F({label,children}){return <div style={{marginBottom:12}}><label style={S.label}>{label}</label>{children}</div>;}
+
+        function Modal({title,onClose,onSave,children}){
+          return(
+            <div style={S.modal} onClick={e=>e.target===e.currentTarget&&onClose()}>
+              <div style={S.modalBox}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+                  <h3 style={{margin:0}}>{title}</h3>
+                  <button onClick={onClose} style={{background:"none",border:"none",fontSize:22,cursor:"pointer",color:R.metinAcik}}>×</button>
+                </div>
+                {children}
+                <div style={{display:"flex",gap:10,marginTop:20,justifyContent:"flex-end"}}>
+                  <button onClick={onClose} style={S.btnS}>İptal</button>
+                  <button onClick={onSave} style={S.btnP}>Kaydet</button>
+                </div>
+              </div>
+            </div>
+          );
+        }
+
+        function GunSayaci({tarih,etiket}){
+          const gun = kalanGun(tarih);
+          if(gun===null) return null;
+          const c = gun<0?R.tehlike:gun<=7?R.tehlike:gun<=30?R.uyari:R.birincil;
+          const txt = gun<0?`${Math.abs(gun)} GÜN GEÇTİ`:gun===0?"BUGÜN!":gun===1?"YARIN":"";
+          return(
+            <div style={S.sayac(c)}>
+              {gun>1?<div style={S.sayacRakam}>{gun}</div>:<div style={{...S.sayacRakam,fontSize:28}}>{txt||gun}</div>}
+              {gun>1&&<div style={{fontSize:13,color:"rgba(255,255,255,0.9)",fontWeight:"700"}}>GÜN</div>}
+              <div style={S.sayacEtiket}>{etiket}</div>
+            </div>
+          );
+        }
+
+        function exportExcel(hayvanlar,islemler){
+          const rows=[];
+          rows.push(["=== HAYVAN KAYITLARI ==="]);
+          rows.push(["Küpe No","İsim","Cins","Cinsiyet","Ağırlık"]);
+          hayvanlar.forEach(h=>rows.push([h.kupeNo,h.isim,h.cins,h.cinsiyet,h.agirlik]));
+          const csv=rows.map(r=>r.map(c=>`"${c??""}"`).join(",")).join("\n");
+          const blob=new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8;"});
+          const url=URL.createObjectURL(blob);
+          const a=document.createElement("a");
+          a.href=url; a.download="ciftlik-verileri.csv"; a.click();
+        }
+
+        // ─── ÖZET COMPONENT ───────────────────────────────────────────────────────────
+        function Ozet({hayvanlar,islemler,saglik,dollenme}) {
+          const gelir = islemler.filter(i=>i.tip==="Gelir").reduce((t,i)=>t+Number(i.tutar),0);
+          const gider = islemler.filter(i=>i.tip==="Gider").reduce((t,i)=>t+Number(i.tutar),0);
+          const buAy = new Date().toISOString().slice(0,7);
+          const buAyG = islemler.filter(i=>i.tip==="Gelir"&&i.tarih?.startsWith(buAy)).reduce((t,i)=>t+Number(i.tutar),0);
+          const buAyGi = islemler.filter(i=>i.tip==="Gider"&&i.tarih?.startsWith(buAy)).reduce((t,i)=>t+Number(i.tutar),0);
+
+          // Sonsuz döngüyü engellemek için useMemo kullanıldı
+          const aylar = useMemo(() => {
+            const arr = [];
+            for(let i=5; i>=0; i--) {
+              const d = new Date(); d.setMonth(d.getMonth()-i);
+              const key = d.toISOString().slice(0,7);
+              const ad = d.toLocaleString("tr-TR",{month:"short"});
+              const g = islemler.filter(x=>x.tip==="Gelir"&&x.tarih?.startsWith(key)).reduce((t,x)=>t+Number(x.tutar),0);
+              const gi = islemler.filter(x=>x.tip==="Gider"&&x.tarih?.startsWith(key)).reduce((t,x)=>t+Number(x.tutar),0);
+              arr.push({ad,g,gi});
+            }
+            return arr;
+          }, [islemler]);
+
+          const yakDogum = dollenme.map(d=>({...d,kalan:kalanGun(d.tahminiDogum)})).filter(d=>d.kalan!==null&&d.kalan>=0&&d.kalan<=30);
+          const skor = Math.min(100, Math.max(0, 100 - (saglik.length * 5) + (hayvanlar.length > 0 ? 20 : 0)));
+
+          return(
+            <div>
+              <div style={{...S.card,background:`linear-gradient(135deg,${R.birincil} 0%,#3d5c32 100%)`,color:"#fff"}}>
+                <div style={{fontSize:15,fontWeight:"700",marginBottom:12,opacity:0.9}}>🌿 {APP_ADI}</div>
+                <div style={S.g3}>
+                  {[{s:hayvanlar.length,l:"Toplam Hayvan",c:"#fff"},{s:gelir.toLocaleString("tr-TR")+" ₺",l:"Toplam Gelir",c:"#A8D5A2"},{s:gider.toLocaleString("tr-TR")+" ₺",l:"Toplam Gider",c:"#FFAA80"}].map((x,i)=>(
+                    <div key={i} style={{textAlign:"center",padding:12}}>
+                      <div style={{fontSize:26,fontWeight:"700",color:x.c,margin:"4px 0"}}>{x.s}</div>
+                      <div style={{fontSize:12,color:"rgba(255,255,255,0.75)"}}>{x.l}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {yakDogum.length>0&&(
+                <div style={S.card}>
+                  <div style={{fontWeight:"700",marginBottom:14,fontSize:15}}>🐣 Yaklaşan Doğumlar</div>
+                  <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
+                    {yakDogum.map((d,i)=>(
+                      <div key={i} style={{display:"flex",alignItems:"center",gap:12,background:R.zemin,borderRadius:10,padding:"12px 16px",flex:1,minWidth:200}}>
+                        <GunSayaci tarih={d.tahminiDogum} etiket="DOĞUMA KALAN" />
+                        <div><div style={{fontWeight:"700",fontSize:16}}>{d.kupeNo}</div></div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div style={S.g2}>
+                <div style={S.card}>
+                  <div style={{fontSize:13,fontWeight:"700",color:R.metinAcik,marginBottom:12,textTransform:"uppercase"}}>Bu Ay</div>
+                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}><span style={{color:R.birincil}}>● Gelir</span><strong>{buAyG.toLocaleString("tr-TR")} ₺</strong></div>
+                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}><span style={{color:R.vurgu}}>● Gider</span><strong>{buAyGi.toLocaleString("tr-TR")} ₺</strong></div>
+                </div>
+                <div style={S.card}>
+                  <div style={{fontSize:13,fontWeight:"700",color:R.metinAcik,marginBottom:12,textTransform:"uppercase"}}>Sürü Bilgisi</div>
+                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}><span>🐑 Dişi</span><strong>{hayvanlar.filter(h=>h.cinsiyet==="Dişi").length}</strong></div>
+                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}><span>🐏 Erkek</span><strong>{hayvanlar.filter(h=>h.cinsiyet==="Erkek").length}</strong></div>
+                </div>
+              </div>
+            </div>
+          );
+        }
+
+        // ─── HAYVAN KAYITLARI COMPONENT ───────────────────────────────────────────────
+        function HayvanKayitlari({hayvanlar,setHayvanlar}){
+          const [modal,setModal]=useState(false);
+          const [form,setForm]=useState({kupeNo:"",isim:"",cins:"",yas:"",cinsiyet:"Dişi",agirlik:"",notlar:""});
+          const [duzenle,setDuzenle]=useState(null);
+          const [arama,setArama]=useState("");
+
+          const kaydet=()=>{
+            if(!form.kupeNo) return alert("Küpe No zorunludur.");
+            const yeni=duzenle!==null?hayvanlar.map((h,i)=>i===duzenle?form:h):[...hayvanlar,{...form,id:Date.now()}];
+            setHayvanlar(yeni);saveData(STORAGE_KEYS.hayvanlar,yeni);
+            setModal(false);setDuzenle(null);
+          };
+
+          const sil=(i)=>{
+            if(!confirm("Silmek istiyor musunuz?"))return;
+            const yeni=hayvanlar.filter((_,idx)=>idx!==i);
+            setHayvanlar(yeni);saveData(STORAGE_KEYS.hayvanlar,yeni);
+          };
+
+          const filtreli=hayvanlar.filter(h=>h.kupeNo?.includes(arama)||h.isim?.toLowerCase().includes(arama.toLowerCase()));
+
+          return(
+            <div>
+              <div style={S.card}>
+                <div style={S.row}><h2 style={S.h2}>🐑 Hayvan Kayıtları</h2><button style={S.btnP} onClick={()=>{setForm({kupeNo:"",isim:"",cins:"",yas:"",cinsiyet:"Dişi",agirlik:"",notlar:""});setDuzenle(null);setModal(true);}}>+ Hayvan Ekle</button></div>
+                <input style={{...S.input,marginBottom:16}} placeholder="Ara..." value={arama} onChange={e=>setArama(e.target.value)}/>
+                {filtreli.length===0?<div style={{color:R.metinAcik,textAlign:"center",padding:32}}>Kayıt yok.</div>:(
+                  <div style={{overflowX:"auto"}}>
+                    <table style={S.table}>
+                      <thead><tr>{["Küpe No","İsim","Cins","Cinsiyet","Ağırlık","⏱ İşlem"].map(h=><th key={h} style={S.th}>{h}</th>)}</tr></thead>
+                      <tbody>{filtreli.map((h,i)=>(
+                        <tr key={i}>
+                          <td style={S.td}><strong>{h.kupeNo}</strong></td>
+                          <td style={S.td}>{h.isim||"-"}</td>
+                          <td style={S.td}>{h.cins||"-"}</td>
+                          <td style={S.td}><span style={S.badge(h.cinsiyet==="Dişi"?R.birincil:R.vurgu)}>{h.cinsiyet}</span></td>
+                          <td style={S.td}>{h.agirlik?`${h.agirlik} kg`:"-"}</td>
+                          <td style={S.td}><div style={{display:"flex",gap:4}}>
+                            <button style={{...S.btnS,fontSize:12,padding:"5px 10px"}} onClick={()=>{setForm(h);setDuzenle(hayvanlar.indexOf(h));setModal(true);}}>✏️</button>
+                            {/* Kapatma hatası düzeltildi */}
+                            <button style={{...S.btnD,fontSize:12,padding:"5px 10px"}} onClick={()=>sil(hayvanlar.indexOf(h))}>🗑</button>
+                          </div></td>
+                        </tr>
+                      ))}</tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+              {modal&&(<Modal title={duzenle!==null?"Hayvanı Düzenle":"Yeni Hayvan"} onClose={()=>{setModal(false);setDuzenle(null);}} onSave={kaydet}>
+                <div style={S.g2}>
+                  <F label="Küpe No *"><input style={S.input} value={form.kupeNo} onChange={e=>setForm({...form,kupeNo:e.target.value})}/></F>
+                  <F label="İsim"><input style={S.input} value={form.isim} onChange={e=>setForm({...form,isim:e.target.value})}/></F>
+                  <F label="Cins"><input style={S.input} value={form.cins} onChange={e=>setForm({...form,cins:e.target.value})}/></F>
+                  <F label="Ağırlık (kg)"><input style={S.input} type="number" value={form.agirlik} onChange={e=>setForm({...form,agirlik:e.target.value})}/></F>
+                  <F label="Cinsiyet"><select style={S.input} value={form.cinsiyet} onChange={e=>setForm({...form,cinsiyet:e.target.value})}><option>Dişi</option><option>Erkek</option></select></F>
+                </div>
+              </Modal>)}
+            </div>
+          );
+        }
+
+        // ─── ANA APP COMPONENT ────────────────────────────────────────────────────────
+        function App() {
+          const [tab, setTab] = useState("ozet");
+          const [hayvanlar, setHayvanlar] = useState([]);
+          const [islemler, setIslemler] = useState([]);
+          const [saglik, setSaglik] = useState([]);
+          const [dollenme, setDollenme] = useState([]);
+
+          useEffect(() => {
+            setHayvanlar(loadData(STORAGE_KEYS.hayvanlar));
+            setIslemler(loadData(STORAGE_KEYS.islemler));
+            setSaglik(loadData(STORAGE_KEYS.saglik));
+            setDollenme(loadData(STORAGE_KEYS.dollenme));
+          }, []);
+
+          return (
+            <div style={S.app}>
+              <div style={S.header}>
+                <span style={{fontSize:24}}>🚜</span>
+                <h1 style={{margin:0, fontSize:20, fontWeight:"700"}}>{APP_ADI}</h1>
+                <button style={{...S.btnS, marginLeft:"auto", background:"rgba(255,255,255,0.2)", color:"#fff"}} 
+                        onClick={() => exportExcel(hayvanlar, islemler)}>
+                  📥 Dışarı Aktar
+                </button>
+              </div>
+
+              <div style={S.nav}>
+                <button style={S.navBtn(tab === "ozet")} onClick={() => setTab("ozet")}>📊 Özet</button>
+                <button style={S.navBtn(tab === "hayvanlar")} onClick={() => setTab("hayvanlar")}>🐑 Hayvanlar</button>
+              </div>
+
+              <div style={S.content}>
+                {tab === "ozet" && <Ozet hayvanlar={hayvanlar} islemler={islemler} saglik={saglik} dollenme={dollenme} />}
+                {tab === "hayvanlar" && <HayvanKayitlari hayvanlar={hayvanlar} setHayvanlar={setHayvanlar} />}
+              </div>
+            </div>
+          );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
     </script>
 </body>
 </html>
