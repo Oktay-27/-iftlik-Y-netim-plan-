@@ -171,4 +171,137 @@
                   <div style={{display:"flex", gap:12, flexWrap:"wrap"}}>
                     {yakDogum.map((d,i)=>(
                       <div key={i} style={{display:"flex", alignItems:"center", gap:12, background:R.zemin, borderRadius:10, padding:"12px 16px", flex:1, minWidth:200}}>
-        
+                        <GunSayaci tarih={d.tahminiDogum} etiket="DOĞUMA KALAN" />
+                        <div><div style={{fontWeight:"700", fontSize:16}}>{d.kupeNo}</div></div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div style={S.g2}>
+                <div style={S.card}>
+                  <div style={{fontSize:13, fontWeight:"700", color:R.metinAcik, marginBottom:12, textTransform:"uppercase"}}>Bu Ay</div>
+                  <div style={{display:"flex", justifyContent:"space-between", marginBottom:8}}><span style={{color:R.birincil}}>● Gelir</span><strong> {buAyG.toLocaleString("tr-TR")} ₺</strong></div>
+                  <div style={{display:"flex", justifyContent:"space-between", marginBottom:8}}><span style={{color:R.vurgu}}>● Gider</span><strong> {buAyGi.toLocaleString("tr-TR")} ₺</strong></div>
+                </div>
+                <div style={S.card}>
+                  <div style={{fontSize:13, fontWeight:"700", color:R.metinAcik, marginBottom:12, textTransform:"uppercase"}}>Sürü Bilgisi</div>
+                  <div style={{display:"flex", justifyContent:"space-between", marginBottom:6}}><span>🐑 Dişi</span><strong> {hayvanlar.filter(h=>h.cinsiyet==="Dişi").length}</strong></div>
+                  <div style={{display:"flex", justifyContent:"space-between", marginBottom:6}}><span>🐏 Erkek</span><strong> {hayvanlar.filter(h=>h.cinsiyet==="Erkek").length}</strong></div>
+                </div>
+              </div>
+            </div>
+          );
+        }
+
+        // ─── HAYVAN KAYITLARI COMPONENT (GERİ GETİRİLDİ) ───────────────────────────────
+        function HayvanKayitlari({hayvanlar, setHayvanlar}){
+          const [modal, setModal]=useState(false);
+          const [form, setForm]=useState({kupeNo:"", isim:"", cins:"", cinsiyet:"Dişi", agirlik:""});
+          const [duzenle, setDuzenle]=useState(null);
+          const [arama, setArama]=useState("");
+
+          const kaydet=()=>{
+            if(!form.kupeNo) return alert("Küpe No zorunludur.");
+            const yeni=duzenle!==null?hayvanlar.map((h,i)=>i===duzenle?form:h):[...hayvanlar, {...form, id:Date.now()}];
+            setHayvanlar(yeni);
+            saveData(STORAGE_KEYS.hayvanlar, yeni);
+            setModal(false);
+            setDuzenle(null);
+          };
+
+          const sil=(i)=>{
+            if(!confirm("Silmek istiyor musunuz?")) return;
+            const yeni=hayvanlar.filter((_,idx)=>idx!==i);
+            setHayvanlar(yeni);
+            saveData(STORAGE_KEYS.hayvanlar, yeni);
+          };
+
+          const filtreli = useMemo(() => {
+            return hayvanlar.filter(h=>h.kupeNo?.includes(arama)||h.isim?.toLowerCase().includes(arama.toLowerCase()));
+          }, [hayvanlar, arama]);
+
+          return(
+            <div>
+              <div style={S.card}>
+                <div style={S.row}><h2 style={S.h2}>🐑 Hayvan Kayıtları</h2><button style={S.btnP} onClick={()=>{setForm({kupeNo:"", isim:"", cins:"", cinsiyet:"Dişi", agirlik:""}); setDuzenle(null); setModal(true);}}>+ Hayvan Ekle</button></div>
+                <input style={{...S.input, marginBottom:16}} placeholder="Küpe no veya isim ara..." value={arama} onChange={e=>setArama(e.target.value)}/>
+                {filtreli.length===0?<div style={{color:R.metinAcik, textAlign:"center", padding:32}}>Kayıt bulunamadı.</div>:(
+                  <div style={{overflowX:"auto"}}>
+                    <table style={S.table}>
+                      <thead><tr>{["Küpe No","İsim","Cins","Cinsiyet","Ağırlık","⏱ İşlem"].map(h=><th key={h} style={S.th}>{h}</th>)}</tr></thead>
+                      <tbody>{filtreli.map((h,i)=>(
+                        <tr key={i}>
+                          <td style={S.td}><strong>{h.kupeNo}</strong></td>
+                          <td style={S.td}>{h.isim||"-"}</td>
+                          <td style={S.td}>{h.cins||"-"}</td>
+                          <td style={S.td}><span style={S.badge(h.cinsiyet==="Dişi"?R.birincil:R.vurgu)}>{h.cinsiyet}</span></td>
+                          <td style={S.td}>{h.agirlik?`${h.agirlik} kg`:"-"}</td>
+                          <td style={S.td}><div style={{display:"flex", gap:4}}>
+                            <button style={{...S.btnS, fontSize:12, padding:"5px 10px"} } onClick={()=>{setForm(h); setDuzenle(hayvanlar.indexOf(h)); setModal(true);}}>✏️</button>
+                            <button style={{...S.btnD, fontSize:12, padding:"5px 10px"}} onClick={()=>sil(hayvanlar.indexOf(h))}>🗑</button>
+                          </div></td>
+                        </tr>
+                      ))}</tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+              {modal&&(<Modal title={duzenle!==null?"Hayvanı Düzenle":"Yeni Hayvan"} onClose={()=>{setModal(false); setDuzenle(null);}} onSave={kaydet}>
+                <div style={S.g2}>
+                  <F label="Küpe No *"><input style={S.input} value={form.kupeNo} onChange={e=>setForm({...form, kupeNo:e.target.value})}/></F>
+                  <F label="İsim"><input style={S.input} value={form.isim} onChange={e=>setForm({...form, isim:e.target.value})}/></F>
+                  <F label="Cins"><input style={S.input} value={form.cins} onChange={e=>setForm({...form, cins:e.target.value})}/></F>
+                  <F label="Ağırlık (kg)"><input style={S.input} type="number" value={form.agirlik} onChange={e=>setForm({...form, agirlik:e.target.value})}/></F>
+                  <F label="Cinsiyet"><select style={S.input} value={form.cinsiyet} onChange={e=>setForm({...form, cinsiyet:e.target.value})}><option>Dişi</option><option>Erkek</option></select></F>
+                </div>
+              </Modal>)}
+            </div>
+          );
+        }
+
+        // ─── ANA APP COMPONENT ────────────────────────────────────────────────────────
+        function App() {
+          const [tab, setTab] = useState("ozet");
+          const [hayvanlar, setHayvanlar] = useState([]);
+          const [islemler, setIslemler] = useState([]);
+          const [saglik, setSaglik] = useState([]);
+          const [dollenme, setDollenme] = useState([]);
+
+          useEffect(() => {
+            setHayvanlar(loadData(STORAGE_KEYS.hayvanlar));
+            setIslemler(loadData(STORAGE_KEYS.islemler));
+            setSaglik(loadData(STORAGE_KEYS.saglik));
+            setDollenme(loadData(STORAGE_KEYS.dollenme));
+          }, []);
+
+          return (
+            <div style={S.app}>
+              <div style={S.header}>
+                <span style={{fontSize:24}}>🚜</span>
+                <h1 style={{margin:0, fontSize:20, fontWeight:"700"}}>{APP_ADI}</h1>
+                <button style={{...S.btnS, marginLeft:"auto", background:"rgba(255,255,255,0.2)", color:"#fff"}} 
+                        onClick={() => exportExcel(hayvanlar, islemler)}>
+                  📥 Dışarı Aktar
+                </button>
+              </div>
+
+              <div style={S.nav}>
+                <button style={S.navBtn(tab === "ozet")} onClick={() => setTab("ozet")}>📊 Özet</button>
+                <button style={S.navBtn(tab === "hayvanlar")} onClick={() => setTab("hayvanlar")}>🐑 Hayvanlar</button>
+              </div>
+
+              <div style={S.content}>
+                {tab === "ozet" && <Ozet hayvanlar={hayvanlar} islemler={islemler} dollenme={dollenme} />}
+                {tab === "hayvanlar" && <HayvanKayitlari hayvanlar={hayvanlar} setHayvanlar={setHayvanlar} />}
+              </div>
+            </div>
+          );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
