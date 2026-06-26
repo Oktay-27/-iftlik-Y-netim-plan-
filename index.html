@@ -4,9 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Çiftlik Yönetimi</title>
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone@7.23.11/babel.min.js"></script>
+
     <style>
         body { margin: 0; padding: 0; background-color: #F7F3EE; }
         div::-webkit-scrollbar { height: 4px; }
@@ -17,6 +19,7 @@
     <div id="root"></div>
 
     <script type="text/babel">
+        // React elementlerini tarayıcı globalinden güvenli bir şekilde alıyoruz
         const { useState, useEffect, useRef } = React;
 
         const APP_ADI = "Çiftlik Yönetimi";
@@ -296,27 +299,4 @@
 
           const kaydet=async()=>{
             if(!form.kupeNo)return alert("Küpe No zorunludur.");
-            const yeni=duzenle!==null?hayvanlar.map((h,i)=>i===duzenle?form:h):[...hayvanlar,{...form,id:Date.now()}];
-            setHayvanlar(yeni);await saveData(STORAGE_KEYS.hayvanlar,yeni);
-            setModal(false);setForm({kupeNo:"",isim:"",cins:"",yas:"",cinsiyet:"Dişi",agirlik:"",notlar:""});setDuzenle(null);
-          };
-
-          const sil=async(i)=>{
-            if(!confirm("Silmek istiyor musunuz?"))return;
-            const yeni=hayvanlar.filter((_,idx)=>idx!==i);
-            setHayvanlar(yeni);await saveData(STORAGE_KEYS.hayvanlar,yeni);
-          };
-
-          const kaydetAgirlik=async()=>{
-            if(!formAg.agirlik)return alert("Ağırlık giriniz.");
-            const yeni=[...agirlikGecmisi,{...formAg,kupeNo:seciliHayvan.kupeNo,id:Date.now()}];
-            setAgirlikGecmisi(yeni);await saveData(STORAGE_KEYS.agirlikGecmisi,yeni);
-            setModalAg(false);setFormAg({tarih:bugun,agirlik:""});
-          };
-
-          const filtreli=hayvanlar.filter(h=>h.kupeNo?.includes(arama)||h.isim?.toLowerCase().includes(arama.toLowerCase())||h.cins?.toLowerCase().includes(arama.toLowerCase()));
-
-          return(
-            <div>
-              <div style={S.card}>
-                <div style={S.row}><h2 style={S.h2}>🐑 Hayvan Kayıtları</h2><button style={S.btnP} onClick={()=>{setForm({kupeNo:"",isim:"",cins:"",yas:"",cinsiyet:"Dişi",agirlik:"",notlar:""});setDuzenle(null);setModal(true);}}>+ Hayvan Ekle</button></d
+            const yeni=duzenle!==null?hayvanlar.map((h,i)=>i===duzenle?form:h):
