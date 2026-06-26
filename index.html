@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Çiftlik Yönetimi</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js" crossorigin></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.12/babel.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone@7.23.12/babel.min.js" crossorigin></script>
     <style>
         body { margin: 0; padding: 0; background-color: #F7F3EE; font-family: sans-serif; }
         div::-webkit-scrollbar { height: 4px; }
@@ -23,9 +23,7 @@
 
         const STORAGE_KEYS = {
           hayvanlar: "koyun_hayvanlar",
-          islemler: "koyun_islemler",
-          saglik: "koyun_saglik",
-          dollenme: "koyun_dollenme"
+          islemler: "koyun_islemler"
         };
 
         const loadData = (key) => {
@@ -43,13 +41,6 @@
           } catch (e) { 
             console.error(e); 
           }
-        };
-
-        const kalanGun = (t) => { 
-          if (!t) return null; 
-          const d1 = new Date(t).setHours(0,0,0,0);
-          const d2 = new Date().setHours(0,0,0,0);
-          return Math.ceil((d1 - d2) / (1000 * 60 * 60 * 24)); 
         };
 
         const R = {
@@ -80,9 +71,6 @@
           badge:(c)=>({display:"inline-block", padding:"3px 10px", borderRadius:20, fontSize:12, fontWeight:"600", background:c+"22", color:c}),
           modal:{position:"fixed", inset:0, background:"rgba(0,0,0,0.45)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:1000, padding:16},
           modalBox:{background:"#fff", borderRadius:12, padding:24, width:"100%", maxWidth:520, maxHeight:"90vh", overflowY:"auto", boxShadow:"0 8px 32px rgba(0,0,0,0.18)"},
-          sayac:(c)=>({background:c, borderRadius:12, padding:"16px 20px", textAlign:"center", minWidth:80}),
-          sayacRakam:{fontSize:42, fontWeight:"900", color:"#fff", lineHeight:1},
-          sayacEtiket:{fontSize:11, color:"rgba(255,255,255,0.85)", marginTop:4, textTransform:"uppercase", letterSpacing:0.5},
         };
 
         function F({label, children}){return <div style={{marginBottom:12}}><label style={S.label}>{label}</label>{children}</div>;}
@@ -105,21 +93,7 @@
           );
         }
 
-        function GunSayaci({tarih, etiket}){
-          const gun = kalanGun(tarih);
-          if(gun===null) return null;
-          const c = gun<0?R.tehlike:gun<=7?R.tehlike:gun<=30?R.uyari:R.birincil;
-          const txt = gun<0?`${Math.abs(gun)} GÜN GEÇTİ`:gun===0?"BUGÜN!":gun===1?"YARIN":"";
-          return(
-            <div style={S.sayac(c)}>
-              {gun>1?<div style={S.sayacRakam}>{gun}</div>:<div style={{...S.sayacRakam, fontSize:28}}>{txt||gun}</div>}
-              {gun>1&&<div style={{fontSize:13, color:"rgba(255,255,255,0.9)", fontWeight:"700"}}>GÜN</div>}
-              <div style={S.sayacEtiket}>{etiket}</div>
-            </div>
-          );
-        }
-
-        function exportExcel(hayvanlar, islemler){
+        function exportExcel(hayvanlar){
           const rows=[];
           rows.push(["=== HAYVAN KAYITLARI ==="]);
           rows.push(["Küpe No","İsim","Cins","Cinsiyet","Ağırlık"]);
@@ -132,19 +106,10 @@
         }
 
         // ─── ÖZET COMPONENT ───────────────────────────────────────────────────────────
-        function Ozet({hayvanlar, islemler, dollenme}) {
+        function Ozet({hayvanlar, islemler}) {
           const gelir = useMemo(() => islemler.filter(i=>i.tip==='Gelir').reduce((t,i)=>t+Number(i.tutar||0),0), [islemler]);
           const gider = useMemo(() => islemler.filter(i=>i.tip==='Gider').reduce((t,i)=>t+Number(i.tutar||0),0), [islemler]);
           
-          const buAy = new Date().toISOString().slice(0,7);
-          const buAyG = useMemo(() => islemler.filter(i=>i.tip==='Gelir'&&i.tarih?.startsWith(buAy)).reduce((t,i)=>t+Number(i.tutar||0),0), [islemler, buAy]);
-          const buAyGi = useMemo(() => islemler.filter(i=>i.tip==='Gider'&&i.tarih?.startsWith(buAy)).reduce((t,i)=>t+Number(i.tutar||0),0), [islemler, buAy]);
-
-          const yakDogum = useMemo(() => {
-            if(!dollenme || !Array.isArray(dollenme)) return [];
-            return dollenme.map(d=>({...d, kalan:kalanGun(d.tahminiDogum)})).filter(d=>d.kalan!==null&&d.kalan>=0&&d.kalan<=30);
-          }, [dollenme]);
-
           return(
             <div>
               <div style={{...S.card, background:`linear-gradient(135deg,${R.birincil} 0%,#3d5c32 100%)`, color:"#fff"}}>
@@ -165,28 +130,14 @@
                 </div>
               </div>
 
-              {yakDogum.length>0&&(
-                <div style={S.card}>
-                  <div style={{fontWeight:"700", marginBottom:14, fontSize:15}}>🐣 Yaklaşan Doğumlar</div>
-                  <div style={{display:"flex", gap:12, flexWrap:"wrap"}}>
-                    {yakDogum.map((d,i)=>(
-                      <div key={i} style={{display:"flex", alignItems:"center", gap:12, background:R.zemin, borderRadius:10, padding:"12px 16px", flex:1, minWidth:200}}>
-                        <GunSayaci tarih={d.tahminiDogum} etiket="DOĞUMA KALAN" />
-                        <div><div style={{fontWeight:"700", fontSize:16}}>{d.kupeNo}</div></div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
               <div style={S.g2}>
                 <div style={S.card}>
-                  <div style={{fontSize:13, fontWeight:"700", color:R.metinAcik, marginBottom:12, textTransform:"uppercase"}}>Bu Ay</div>
-                  <div style={{display:"flex", justifyContent:"space-between", marginBottom:8}}><span style={{color:R.birincil}}>● Gelir</span><strong> {buAyG.toLocaleString("tr-TR")} ₺</strong></div>
-                  <div style={{display:"flex", justifyContent:"space-between", marginBottom:8}}><span style={{color:R.vurgu}}>● Gider</span><strong> {buAyGi.toLocaleString("tr-TR")} ₺</strong></div>
+                  <div style={{fontSize:13, fontWeight:"700", color:R.metinAcik, marginBottom:12, textTransform:"uppercase"}}>Finansal Durum</div>
+                  <div style={{display:"flex", justifyContent:"space-between", marginBottom:8}}><span style={{color:R.birincil}}>● Gelir</span><strong> {gelir.toLocaleString("tr-TR")} ₺</strong></div>
+                  <div style={{display:"flex", justifyContent:"space-between", marginBottom:8}}><span style={{color:R.vurgu}}>● Gider</span><strong> {gider.toLocaleString("tr-TR")} ₺</strong></div>
                 </div>
                 <div style={S.card}>
-                  <div style={{fontSize:13, fontWeight:"700", color:R.metinAcik, marginBottom:12, textTransform:"uppercase"}}>Sürü Bilgisi</div>
+                  <div style={{fontSize:13, fontWeight:"700", color:R.metinAcik, marginBottom:12, textTransform:"uppercase"}}>Sürü Yapısı</div>
                   <div style={{display:"flex", justifyContent:"space-between", marginBottom:6}}><span>🐑 Dişi</span><strong> {hayvanlar.filter(h=>h.cinsiyet==="Dişi").length}</strong></div>
                   <div style={{display:"flex", justifyContent:"space-between", marginBottom:6}}><span>🐏 Erkek</span><strong> {hayvanlar.filter(h=>h.cinsiyet==="Erkek").length}</strong></div>
                 </div>
@@ -195,7 +146,7 @@
           );
         }
 
-        // ─── HAYVAN KAYITLARI COMPONENT (GERİ GETİRİLDİ) ───────────────────────────────
+        // ─── HAYVAN KAYITLARI COMPONENT ───────────────────────────────────────────────
         function HayvanKayitlari({hayvanlar, setHayvanlar}){
           const [modal, setModal]=useState(false);
           const [form, setForm]=useState({kupeNo:"", isim:"", cins:"", cinsiyet:"Dişi", agirlik:""});
@@ -239,7 +190,7 @@
                           <td style={S.td}><span style={S.badge(h.cinsiyet==="Dişi"?R.birincil:R.vurgu)}>{h.cinsiyet}</span></td>
                           <td style={S.td}>{h.agirlik?`${h.agirlik} kg`:"-"}</td>
                           <td style={S.td}><div style={{display:"flex", gap:4}}>
-                            <button style={{...S.btnS, fontSize:12, padding:"5px 10px"} } onClick={()=>{setForm(h); setDuzenle(hayvanlar.indexOf(h)); setModal(true);}}>✏️</button>
+                            <button style={{...S.btnS, fontSize:12, padding:"5px 10px"}} onClick={()=>{setForm(h); setDuzenle(hayvanlar.indexOf(h)); setModal(true);}}>✏️</button>
                             <button style={{...S.btnD, fontSize:12, padding:"5px 10px"}} onClick={()=>sil(hayvanlar.indexOf(h))}>🗑</button>
                           </div></td>
                         </tr>
@@ -266,14 +217,10 @@
           const [tab, setTab] = useState("ozet");
           const [hayvanlar, setHayvanlar] = useState([]);
           const [islemler, setIslemler] = useState([]);
-          const [saglik, setSaglik] = useState([]);
-          const [dollenme, setDollenme] = useState([]);
 
           useEffect(() => {
             setHayvanlar(loadData(STORAGE_KEYS.hayvanlar));
             setIslemler(loadData(STORAGE_KEYS.islemler));
-            setSaglik(loadData(STORAGE_KEYS.saglik));
-            setDollenme(loadData(STORAGE_KEYS.dollenme));
           }, []);
 
           return (
@@ -282,7 +229,7 @@
                 <span style={{fontSize:24}}>🚜</span>
                 <h1 style={{margin:0, fontSize:20, fontWeight:"700"}}>{APP_ADI}</h1>
                 <button style={{...S.btnS, marginLeft:"auto", background:"rgba(255,255,255,0.2)", color:"#fff"}} 
-                        onClick={() => exportExcel(hayvanlar, islemler)}>
+                        onClick={() => exportExcel(hayvanlar)}>
                   📥 Dışarı Aktar
                 </button>
               </div>
@@ -293,7 +240,7 @@
               </div>
 
               <div style={S.content}>
-                {tab === "ozet" && <Ozet hayvanlar={hayvanlar} islemler={islemler} dollenme={dollenme} />}
+                {tab === "ozet" && <Ozet hayvanlar={hayvanlar} islemler={islemler} />}
                 {tab === "hayvanlar" && <HayvanKayitlari hayvanlar={hayvanlar} setHayvanlar={setHayvanlar} />}
               </div>
             </div>
