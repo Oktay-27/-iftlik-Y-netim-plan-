@@ -1,12 +1,24 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Çiftlik Yönetimi</title>
+    
+    <meta name="theme-color" content="#5C7A4E">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Çiftlik">
+    <link rel="manifest" href="data:application/manifest+json;base64,ewogICJuYW1lIjogIkNoaWZ0bGlrIFlvbmV0aW1pIiwKICAic2hvcnRfbmFtZSI6ICJDaGlmdGxpayIsCiAgInN0YXJ0X3VybCI6ICIuIiwKICAiZGlzcGxheSI6ICJzdGFuZGFsb25lIiwKICAiYmFja2dyb3VuZF9jb2xvciI6ICIjRjdGM0VFIiwKICAidGhlbWVfY29sb3IiOiAiIzVDN0E0RSIsCiAgImljb25zIjogWwogICAgewogICAgICAic3JjIjogImRhdGE6aW1hZ2Uvc3ZnK3htbDt1dGY4LDxzdmcgeG1sbnM9J2h0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnJyB2aWV3Qm94PScwIDAgNTEyIDUxMic+PGNpcmNsZSBjeD0nMjU2JyBjeT0nMjU2JyByPScyNTYnIGZpbGw9JyM1QzdBNEUnLz48dGV4dCB4PSc1MCUnIHk9JzU1JScgZm9udC1zaXplPScxMDAnIGZvbnQtZmFtaWx5PSdzYW5zLXNlcmlmJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJyBkb21pbmFudC1iYXNlbGluZT0nbWlkZGxlJz7wnb6NPC90ZXh0Pjwvc3ZnPiIsCiAgICAgICJzaXplcyI6ICI1MTJ4NTEyIiwKICAgICAgInR5cGUiOiAiaW1hZ2Uvc3ZnK3htbCIKICAgIH0KICBdCn0=">
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js" crossorigin></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.12/babel.min.js" crossorigin></script>
-    <style>body{margin:0;padding:0;background:#F7F3EE;} div::-webkit-scrollbar{height:4px;} div::-webkit-scrollbar-thumb{background:#E2D9CD;border-radius:10px;}</style>
+    <style>
+        body { margin: 0; padding: 0; background: #F7F3EE; }
+        div::-webkit-scrollbar { height: 4px; }
+        div::-webkit-scrollbar-thumb { background: #E2D9CD; border-radius: 10px; }
+    </style>
 </head>
 <body>
     <div id="root"></div>
@@ -21,36 +33,57 @@
             saglik: "koyun_saglik", 
             dogumlar: "koyun_dogumlar", 
             dollenme: "koyun_dollenme", 
-            agirliK: "koyun_agirlik" 
+            agirlik: "koyun_agirlik" 
         };
         
-        const loadData = (k) => { try{ const r = localStorage.getItem(k); return r ? JSON.parse(r) : []; }catch(e){ return []; } };
-        const saveData = (k, d) => { try{ localStorage.setItem(k, JSON.stringify(d)); }catch(e){ console.error(e); } };
-        const kalanGun = (t) => { if(!t) return null; const d1 = new Date(t).setHours(0,0,0,0); const d2 = new Date().setHours(0,0,0,0); return Math.ceil((d1 - d2)/(1000*60*60*24)); };
-
-        const R = { zemin:"#F7F3EE", kart:"#FFFFFF", birincil:"#5C7A4E", vurgu:"#C87137", metin:"#2C2416", metinAcik:"#7A6B55", sinir:"#E2D9CD", tehlike:"#C0392B", uyari:"#E67E22" };
-        const S = {
-          app:{minHeight:"100vh",background:R.zemin,fontFamily:"'Georgia',serif",color:R.metin},
-          header:{background:R.birincil,color:"#fff",padding:"16px 24px",display:"flex",alignItems:"center",justifyContent:"space-between",boxShadow:"0 2px 8px rgba(0,0,0,0.1)"},
-          nav:{background:"#fff",borderBottom:`1px solid ${R.sinir}`,display:"flex",overflowX:"auto",padding:"0 16px"},
-          navBtn:(a)=>({padding:"14px",border:"none",background:"none",cursor:"pointer",fontFamily:"inherit",fontSize:13,fontWeight:a?"700":"400",color:a?R.birincil:R.metinAcik,borderBottom:a?`3px solid ${R.birincil}`:"3px solid transparent",whiteSpace:"nowrap"}),
-          card:{background:R.kart,borderRadius:10,border:`1px solid ${R.sinir}`,padding:20,marginBottom:16,boxShadow:"0 1px 4px rgba(0,0,0,0.05)"},
-          input:{width:"100%",padding:"9px 12px",border:`1px solid ${R.sinir}`,borderRadius:7,fontFamily:"inherit",fontSize:14,background:R.zemin,color:R.metin,boxSizing:"border-box",marginBottom:12},
-          btnP:{background:R.birincil,color:"#fff",border:"none",borderRadius:7,padding:"9px 18px",cursor:"pointer",fontWeight:"600",fontFamily:"inherit"},
-          btnS:{background:R.sinir,color:R.metin,border:"none",borderRadius:7,padding:"7px 14px",cursor:"pointer",fontFamily:"inherit"},
-          btnD:{background:"none",border:"none",fontSize:12,cursor:"pointer",padding:"5px 10px"},
-          table:{width:"100%",borderCollapse:"collapse",fontSize:14},
-          th:{textAlign:"left",padding:"10px 12px",background:R.zemin,borderBottom:`2px solid ${R.sinir}`,fontSize:12,color:R.metinAcik,textTransform:"uppercase"},
-          td:{padding:"10px 12px",borderBottom:`1px solid ${R.sinir}`,verticalAlign:"middle"},
-          badge:(c)=>({display:"inline-block",padding:"3px 10px",borderRadius:20,fontSize:12,fontWeight:"600",background:c+"22",color:c}),
-          modal:{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000,padding:16},
-          modalBox:{background:"#fff",borderRadius:12,padding:24,width:"100%",maxWidth:520,maxHeight:"90vh",overflowY:"auto",boxShadow:"0 8px 32px rgba(0,0,0,0.18)"},
-          sayac:(c)=>({background:c,borderRadius:12,padding:"16px 20px",textAlign:"center",color:"#fff",minWidth:80}),
-          sayacRakam:{fontSize:42,fontWeight:"900",color:"#fff",lineHeight:1},
-          sayacEtiket:{fontSize:11,color:"rgba(255,255,255,0.85)",marginTop:4,textTransform:"uppercase",letterSpacing:0.5}
+        const loadData = (k) => { 
+            try { 
+                const r = localStorage.getItem(k); 
+                return r ? JSON.parse(r) : []; 
+            } catch(e) { 
+                return []; 
+            } 
+        };
+        
+        const saveData = (k, d) => { 
+            try { 
+                localStorage.setItem(k, JSON.stringify(d)); 
+            } catch(e) { 
+                console.error(e); 
+            } 
+        };
+        
+        const kalanGun = (t) => { 
+            if(!t) return null; 
+            const d1 = new Date(t).setHours(0,0,0,0); 
+            const d2 = new Date().setHours(0,0,0,0); 
+            return Math.ceil((d1 - d2)/(1000*60*60*24)); 
         };
 
-        function F({label, children}){return <div style={{marginBottom:12}}><label style={{display:"block",fontSize:12,fontWeight:"600",color:R.metinAcik,marginBottom:4,textTransform:"uppercase"}}>{label}</label>{children}</div>;}
+        const R = { zemin:"#F7F3EE", kart:"#FFFFFF", birincil:"#5C7A4E", vurgu:"#C87137", metin:"#2C2416", metinAcik:"#7A6B55", sinir:"#E2D9CD", tehlike:"#C0392B", uyari:"#E67E22" };
+        
+        const S = {
+          app: { minHeight:"100vh", background:R.zemin, fontFamily:"'Georgia',serif", color:R.metin },
+          header: { background:R.birincil, color:"#fff", padding:"16px 24px", display:"flex", alignItems:"center", justifyContent:"space-between", boxShadow:"0 2px 8px rgba(0,0,0,0.1)" },
+          nav: { background:"#fff", borderBottom:`1px solid ${R.sinir}`, display:"flex", overflowX:"auto", padding:"0 16px" },
+          navBtn: (a) => ({ padding:"14px", border:"none", background:"none", cursor:"pointer", fontFamily:"inherit", fontSize:13, fontWeight:a?"700":"400", color:a?R.birincil:R.metinAcik, borderBottom:a?`3px solid ${R.birincil}`:"3px solid transparent", whiteSpace:"nowrap" }),
+          card: { background:R.kart, borderRadius:10, border:`1px solid ${R.sinir}`, padding:20, marginBottom:16, boxShadow:"0 1px 4px rgba(0,0,0,0.05)" },
+          input: { width:"100%", padding:"9px 12px", border:`1px solid ${R.sinir}`, borderRadius:7, fontFamily:"inherit", fontSize:14, background:R.zemin, color:R.metin, boxSizing:"border-box", marginBottom:12 },
+          btnP: { background:R.birincil, color:"#fff", border:"none", borderRadius:7, padding:"9px 18px", cursor:"pointer", fontWeight:"600", fontFamily:"inherit" },
+          btnS: { background:R.sinir, color:R.metin, border:"none", borderRadius:7, padding:"7px 14px", cursor:"pointer", fontFamily:"inherit" },
+          btnD: { background:"none", border:"none", fontSize:12, cursor:"pointer", padding:"5px 10px" },
+          table: { width:"100%", borderCollapse:"collapse", fontSize:14 },
+          th: { textAlign:"left", padding:"10px 12px", background:R.zemin, borderBottom:`2px solid ${R.sinir}`, fontSize:12, color:R.metinAcik, textTransform:"uppercase" },
+          td: { padding:"10px 12px", borderBottom:`1px solid ${R.sinir}`, verticalAlign:"middle" },
+          badge: (c) => ({ display:"inline-block", padding:"3px 10px", borderRadius:20, fontSize:12, fontWeight:"600", background:c+"22", color:c }),
+          modal: { position:"fixed", inset:0, background:"rgba(0,0,0,0.45)", display:"flex", alignItems:"center", justifyCenter:"center", zIndex:1000, padding:16, alignItems:"center", justifyContent:"center" },
+          modalBox: { background:"#fff", borderRadius:12, padding:24, width:"100%", maxWidth:520, maxHeight:"90vh", overflowY:"auto", boxShadow:"0 8px 32px rgba(0,0,0,0.18)" },
+          sayac: (c) => ({ background:c, borderRadius:12, padding:"16px 20px", textAlign:"center", color:"#fff", minWidth:80 }),
+          sayacRakam: { fontSize:42, fontWeight:"900", color:"#fff", lineHeight:1 },
+          sayacEtiket: { fontSize:11, color:"rgba(255,255,255,0.85)", marginTop:4, textTransform:"uppercase", letterSpacing:0.5 }
+        };
+
+        function F({label, children}){ return <div style={{marginBottom:12}}><label style={{display:"block",fontSize:12,fontWeight:"600",color:R.metinAcik,marginBottom:4,textTransform:"uppercase"}}>{label}</label>{children}</div>; }
         
         function Modal({title, onClose, onSave, children}){
           return (
@@ -66,9 +99,12 @@
 
         function GunSayaci({tarih, etiket}){
           const gun = kalanGun(tarih); if(gun===null) return null;
-          const c = gun<0 ? R.tehlike : gun style={S.sayac(c)}>
-              <div style={S.sayacRakam}>{gun<0 ? Math.abs(gun) : gun}</div>
-              <div style={S.sayacEtiket}>{gun<0 ? "GÜN GEÇTİ" : "GÜN KALDI"}</div>
+          let c = R.birincil;
+          if(gun < 0 || gun <= 7) { c = R.tehlike; } else if(gun <= 30) { c = R.uyari; }
+          return (
+            <div style={S.sayac(c)}>
+              <div style={S.sayacRakam}>{gun < 0 ? Math.abs(gun) : gun}</div>
+              <div style={S.sayacEtiket}>{gun < 0 ? "GÜN GEÇTİ" : "GÜN KALDI"}</div>
               <div style={{fontSize:9,opacity:0.8,marginTop:2}}>{etiket}</div>
             </div>
           );
@@ -76,18 +112,18 @@
 
         function KalanBadge({tarih}){
           const gun = kalanGun(tarih); if(gun===null) return <span>-</span>;
-          const c = gun<0 ? R.tehlike : gun<=7 ? R.tehlike : gun<=30 ? R.uyari : R.birincil;
-          return <span style={S.badge(c)}>{gun<0 ? `${Math.abs(gun)} gün geçti` : gun===0 ? "Bugün!" : gun===1 ? "Yarın" : `${gun} gün`}</span>;
+          let c = R.birincil;
+          if(gun < 0 || gun <= 7) { c = R.tehlike; } else if(gun <= 30) { c = R.uyari; }
+          return <span style={S.badge(c)}>{gun < 0 ? `${Math.abs(gun)} gün geçti` : gun===0 ? "Bugün!" : gun===1 ? "Yarın" : `${gun} gün`}</span>;
         }
 
-        // ─── ÖZET SEKMESİ ──────────────────────────────────────────────────────────
-        function Ozet({hayvanlar, islemler, dollenme, saglik}){
+        function Ozet({hayvanlar, islemler, dollenme}){
           const g = islemler.filter(i=>i.tip==="Gelir").reduce((t,i)=>t+Number(i.tutar||0),0);
           const gi = islemler.filter(i=>i.tip==="Gider").reduce((t,i)=>t+Number(i.tutar||0),0);
           const bAy = bugun.slice(0,7);
           const bG = islemler.filter(i=>i.tip==="Gelir"&&i.tarih?.startsWith(bAy)).reduce((t,i)=>t+Number(i.tutar||0),0);
           const bGi = islemler.filter(i=>i.tip==="Gider"&&i.tarih?.startsWith(bAy)).reduce((t,i)=>t+Number(i.tutar||0),0);
-          const yDogum = dollenme.filter(d=>d.tahminiDogum&&kalanGun(d.tahminiDogum)>=0&&kalanGun(d.tahminiDogum)<=30);
+          const yDogum = dollenme.filter(d=>d.tahminiDogum && kalanGun(d.tahminiDogum)>=0 && kalanGun(d.tahminiDogum)<=30);
 
           return (
             <div>
@@ -119,7 +155,6 @@
           );
         }
 
-        // ─── HAYVAN KAYITLARI SEKMESİ (DÜZENLEME VE TÜM ALANLAR DAHİL) ─────────────────
         function HayvanKayitlari({hayvanlar, setHayvanlar}){
           const [modal, setModal] = useState(false);
           const [duzenle, setDuzenle] = useState(null);
@@ -183,7 +218,6 @@
           );
         }
 
-        // ─── MODÜLER JENERİK BİLEŞEN (DİĞER SEKMELER İÇİN) ───────────────────────────
         function JenerikTakip({baslik, alanlar, veriler, setVeriler, depoKey, modalAlanlar, varsayilanForm}){
           const [m,setM]=useState(false); const [f,setF]=useState(varsayilanForm);
           const kaydet=()=>{ const n=[...veriler,{...f,id:Date.now()}]; setVeriler(n); saveData(depoKey,n); setM(false); setF(varsayilanForm); };
@@ -205,18 +239,14 @@
           );
         }
 
-        // ─── ANA UYGULAMA BİLEŞENİ ──────────────────────────────────────────────────
         function App() {
           const [tab, setTab] = useState("ozet");
-          const [hayvanlar, setHayvanlar] = useState([]); const [islemler, setIslemler] = useState([]);
-          const [rasyonlar, setRasyonlar] = useState([]); const [saglik, setSaglik] = useState([]);
-          const [dogumlar, setDogumlar] = useState([]);   const [dollenme, setDollenme] = useState([]);
-
-          useEffect(() => {
-            setHayvanlar(loadData(STORAGE_KEYS.hayvanlar)); setIslemler(loadData(STORAGE_KEYS.islemler));
-            setRasyonlar(loadData(STORAGE_KEYS.rasyonlar)); setSaglik(loadData(STORAGE_KEYS.saglik));
-            setDogumlar(loadData(STORAGE_KEYS.dogumlar));   setDollenme(loadData(STORAGE_KEYS.dollenme));
-          }, []);
+          const [hayvanlar, setHayvanlar] = useState(() => loadData(STORAGE_KEYS.hayvanlar)); 
+          const [islemler, setIslemler] = useState(() => loadData(STORAGE_KEYS.islemler));
+          const [rasyonlar, setRasyonlar] = useState(() => loadData(STORAGE_KEYS.rasyonlar)); 
+          const [saglik, setSaglik] = useState(() => loadData(STORAGE_KEYS.saglik));
+          const [dogumlar, setDogumlar] = useState(() => loadData(STORAGE_KEYS.dogumlar));   
+          const [dollenme, setDollenme] = useState(() => loadData(STORAGE_KEYS.dollenme));
 
           return (
             <div style={S.app}>
@@ -227,7 +257,7 @@
                 })}
               </div>
               <div style={{padding:"20px 16px",maxWidth:800,margin:"0 auto"}}>
-                {tab === "ozet" && <Ozet hayvanlar={hayvanlar} islemler={islemler} dollenme={dollenme} saglik={saglik} />}
+                {tab === "ozet" && <Ozet hayvanlar={hayvanlar} islemler={islemler} dollenme={dollenme} />}
                 {tab === "hayvanlar" && <HayvanKayitlari hayvanlar={hayvanlar} setHayvanlar={setHayvanlar} />}
                 {tab === "finans" && <JenerikTakip baslik="💰 Finans Takibi" veriler={islemler} setVeriler={setIslemler} depoKey={STORAGE_KEYS.islemler} varsayilanForm={{tarih:bugun,tip:"Gider",kategori:"Yem",tutar:""}} alanlar={[{t:"Tarih",r:v=>v.tarih},{t:"Tip",r:v=><span style={S.badge(v.tip==="Gelir"?R.birincil:R.vurgu)}>{v.tip}</span>},{t:"Kategori",r:v=>v.kategori},{t:"Tutar",r:v=><strong>{v.tutar} ₺</strong>}]} modalAlanlar={[{l:"Tarih",k:"tarih",type:"date"},{l:"Tip",k:"tip",type:"select",opts:["Gider","Gelir"]},{l:"Kategori",k:"kategori"},{l:"Tutar (₺)",k:"tutar",type:"number"}]} />}
                 {tab === "saglik" && <JenerikTakip baslik="💉 Sağlık & Aşı" veriler={saglik} setVeriler={setSaglik} depoKey={STORAGE_KEYS.saglik} varsayilanForm={{kupeNo:"",tip:"Aşı",ilac:"",tekrarTarihi:""}} alanlar={[{t:"Küpe No",r:v=>v.kupeNo},{t:"Tip",r:v=>v.tip},{t:"İlaç/Uygulama",r:v=>v.ilac},{t:"Tekrar",r:v=><KalanBadge tarih={v.tekrarTarihi}/>}]} modalAlanlar={[{l:"Küpe No",k:"kupeNo"},{l:"Tip",k:"tip",type:"select",opts:["Aşı","Tedavi","Parazit"]},{l:"İlaç",k:"ilac"},{l:"Tekrar Tarihi",k:"tekrarTarihi",type:"date"}]} />}
@@ -239,7 +269,16 @@
           );
         }
         ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+
+        // Tarayıcıya "Uygulama" olduğunu söyleyen arka plan servisi
+        if ('serviceWorker' in navigator) {
+          window.addEventListener('load', () => {
+            const swCode = `self.addEventListener('fetch', function(e) {});`;
+            const blob = new Blob([swCode], { type: 'application/javascript' });
+            const swUrl = URL.createObjectURL(blob);
+            navigator.serviceWorker.register(swUrl).catch(err => console.log(err));
+          });
+        }
     </script>
 </body>
-    </html>
-    
+</html>
