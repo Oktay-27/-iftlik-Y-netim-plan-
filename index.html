@@ -4,13 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Çiftlik Yönetimi</title>
-    
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js" crossorigin></script>
-    <script src="https://unpkg.com/@babel/standalone@7.23.11/babel.min.js" crossorigin></script>
-
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <style>
         body { margin: 0; padding: 0; background-color: #F7F3EE; }
+        /* Mobil kaydırma çubuğu gizleme */
         div::-webkit-scrollbar { height: 4px; }
         div::-webkit-scrollbar-thumb { background: #E2D9CD; border-radius: 10px; }
     </style>
@@ -33,6 +32,7 @@
           agirlikGecmisi: "koyun_agirlik",
         };
 
+        // Tarayıcı uyumlu LocalStorage dönüşümü
         const loadData = async (key) => {
           try { const r = localStorage.getItem(key); return r ? JSON.parse(r) : []; } catch { return []; }
         };
@@ -141,6 +141,7 @@
           a.href=url; a.download="ciftlik-verileri.csv"; a.click();
         }
 
+        // ─── ÖZET COMPONENT ───────────────────────────────────────────────────────────
         function Ozet({hayvanlar,islemler,dogumlar,dollenme,rasyonlar,saglik}){
           const gelir=islemler.filter(i=>i.tip==="Gelir").reduce((t,i)=>t+Number(i.tutar),0);
           const gider=islemler.filter(i=>i.tip==="Gider").reduce((t,i)=>t+Number(i.tutar),0);
@@ -287,6 +288,7 @@
           );
         }
 
+        // ─── HAYVAN KAYITLARI COMPONENT ───────────────────────────────────────────────
         function HayvanKayitlari({hayvanlar,setHayvanlar,agirlikGecmisi,setAgirlikGecmisi}){
           const [modal,setModal]=useState(false);
           const [modalAg,setModalAg]=useState(false);
@@ -317,8 +319,3 @@
           };
 
           const filtreli=hayvanlar.filter(h=>h.kupeNo?.includes(arama)||h.isim?.toLowerCase().includes(arama.toLowerCase())||h.cins?.toLowerCase().includes(arama.toLowerCase()));
-
-          return(
-            <div>
-              <div style={S.card}>
-                <div style={S.row}><h2 style={S.h2}>🐑 Hayvan Kayıtları</h2><button style={S.btnP} onClick={()=>{setForm({kupeNo:"",is
