@@ -19,7 +19,6 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        // İlk kodundaki tüm React state ve hook yapıları birebir korunmuştur
         const { useState, useEffect, useRef } = React;
 
         const APP_ADI = "Çiftlik Yönetimi";
@@ -276,11 +275,11 @@
                     <circle cx="40" cy="40" r="32" fill="none" stroke={skor>70?R.birincil:skor>40?R.uyari:R.tehlike} strokeWidth="8"
                       strokeDasharray={`${skor*2.01} 201`} strokeLinecap="round"/>
                   </svg>
-                  <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,fontWeight:"700"}}_{skor}</div>
+                  <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,fontWeight:"700"}}>{skor}</div>
                 </div>
                 <div>
                   <div style={{fontWeight:"700",fontSize:15,marginBottom:4}}>💚 Sürü Sağlık Skoru</div>
-                  <div style={{fontSize:13,color:R.metinAcik}}>{sonAySaglik} sağlık kaydı</div>
+                  <div style={{fontSize:13,color:R.metinAcik}}>Son 30 günde {saglik.filter(s=>s.tarih>=sonAyStr).length} sağlık kaydı</div>
                   <div style={{fontSize:12,color:R.metinAcik,marginTop:2}}>{skor>70?"Sürü genel olarak sağlıklı görünüyor":skor>40?"Takip gerektiren durumlar var":"Dikkat! Veteriner kontrolü önerilir"}</div>
                 </div>
               </div>
@@ -322,4 +321,4 @@
           return(
             <div>
               <div style={S.card}>
-                <div style={S.row}><h2 style={S.h2}>🐑 Hayvan Kayıtları</h2><button style={S.btnP} o
+                <div style={S.row}><h2 style={S.h2}>🐑 Hayvan Kayıtları</h2><button style={S.btnP} onClick={()=>{setForm({kupeNo:"",is
