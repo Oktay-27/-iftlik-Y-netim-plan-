@@ -4,293 +4,165 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Çiftlik Yönetimi</title>
-    <style>
-        body { margin: 0; padding: 0; background-color: #F7F3EE; font-family: sans-serif; color: #2C2416; }
-        .header { background: #5C7A4E; color: #fff; padding: 16px 24px; display: flex; align-items: center; gap: 12px; boxShadow: 0 2px 8px rgba(0,0,0,0.15); }
-        .nav { background: #fff; border-bottom: 1px solid #E2D9CD; display: flex; overflow-x: auto; padding: 0 16px; }
-        .nav-btn { padding: 12px 14px; border: none; background: none; cursor: pointer; font-family: inherit; font-size: 13px; color: #7A6B55; border-bottom: 3px solid transparent; white-space: nowrap; }
-        .nav-btn.active { font-weight: 700; color: #5C7A4E; border-bottom: 3px solid #5C7A4E; }
-        .content { padding: 20px 16px; max-width: 900px; margin: 0 auto; }
-        .card { background: #FFFFFF; border-radius: 10px; border: 1px solid #E2D9CD; padding: 20px; margin-bottom: 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
-        .row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
-        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        .btn-p { background: #5C7A4E; color: #fff; border: none; border-radius: 7px; padding: 9px 18px; cursor: pointer; font-weight: 600; font-family: inherit; }
-        .btn-s { background: #E2D9CD; color: #2C2416; border: none; border-radius: 7px; padding: 7px 14px; cursor: pointer; font-family: inherit; }
-        .btn-d { background: #C0392B; color: #fff; border: none; border-radius: 7px; padding: 7px 14px; cursor: pointer; font-family: inherit; }
-        .input { width: 100%; padding: 9px 12px; border: 1px solid #E2D9CD; border-radius: 7px; background: #F7F3EE; box-sizing: border-box; font-family: inherit; }
-        .label { display: block; font-size: 12px; font-weight: 600; color: #7A6B55; margin-bottom: 4px; text-transform: uppercase; }
-        table { width: 100%; border-collapse: collapse; font-size: 14px; }
-        th { text-align: left; padding: 10px 12px; background: #F7F3EE; border-bottom: 2px solid #E2D9CD; color: #7A6B55; font-size: 12px; text-transform: uppercase; }
-        td { padding: 10px 12px; border-bottom: 1px solid #E2D9CD; }
-        .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
-        .badge.disi { background: rgba(92,122,78,0.15); color: #5C7A4E; }
-        .badge.erkek { background: rgba(200,113,55,0.15); color: #C87137; }
-        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display: none; align-items: center; justify-content: center; zIndex: 1000; padding: 16px; }
-        .modal.open { display: flex; }
-        .modal-box { background: #fff; border-radius: 12px; padding: 24px; width: 100%; max-width: 520px; box-shadow: 0 8px 32px rgba(0,0,0,0.18); }
-    </style>
+    <script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone@7.23.12/babel.min.js" crossorigin></script>
 </head>
-<body>
+<body style="margin:0; padding:0; background:#F7F3EE; color:#2C2416; font-family:'Georgia',serif;">
+    <div id="root"></div>
 
-    <div class="header">
-        <span style="font-size:24px;">🚜</span>
-        <h1 style="margin:0; font-size:20px; font-weight:700;">Çiftlik Yönetimi</h1>
-    </div>
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        const bugun = () => new Date().toISOString().split("T")[0];
+        const kalanGun = (t) => { if (!t) return null; return Math.ceil((new Date(t).setHours(0,0,0,0) - new Date().setHours(0,0,0,0))/(1000*60*60*24)); };
 
-    <div class="nav">
-        <button id="btn-ozet" class="nav-btn active" onclick="setTab('ozet')">📊 Özet</button>
-        <button id="btn-hayvanlar" class="nav-btn" onclick="setTab('hayvanlar')">🐑 Hayvanlar</button>
-    </div>
+        const R = { zemin:"#F7F3EE", kart:"#FFFFFF", birincil:"#5C7A4E", vurgu:"#C87137", metinAcik:"#7A6B55", sinir:"#E2D9CD", tehlike:"#C0392B", uyari:"#E67E22" };
+        const S = {
+            card: { background:R.kart, borderRadius:10, border:`1px solid ${R.sinir}`, padding:20, marginBottom:16 },
+            input: { width:"100%", padding:"9px 12px", border:`1px solid ${R.sinir}`, borderRadius:7, background:R.zemin, boxSizing:"border-box", marginBottom:12 },
+            btnP: { background:R.birincil, color:"#fff", border:"none", borderRadius:7, padding:"9px 18px", cursor:"pointer", fontWeight:"600" },
+            btnS: { background:R.sinir, color:"#2C2416", border:"none", borderRadius:7, padding:"7px 14px", cursor:"pointer" },
+            table: { width:"100%", borderCollapse:"collapse", fontSize:14 },
+            th: { textAlign:"left", padding:"10px 12px", background:R.zemin, borderBottom:`2px solid ${R.sinir}`, fontSize:12, color:R.metinAcik, textTransform:"uppercase" },
+            td: { padding:"10px 12px", borderBottom:`1px solid ${R.sinir}` },
+            modal: { position:"fixed", inset:0, background:"rgba(0,0,0,0.45)", display:"flex", alignItems:"center", justifyCenter:"center", zIndex:1000, padding:16 }
+        };
 
-    <div class="content">
-        <div id="panel-ozet">
-            <div class="card" style="background: linear-gradient(135deg, #5C7A4E 0%, #3d5c32 100%); color: #fff;">
-                <div style="font-size:15px; font-weight:700; margin-bottom:12px; opacity:0.9;">🌿 Genel Durum</div>
-                <div class="grid-3">
-                    <div style="text-align:center;">
-                        <div id="stat-toplam" style="font-size:26px; font-weight:700; margin:4px 0;">0</div>
-                        <div style="font-size:12px; color:rgba(255,255,255,0.75);">Toplam Hayvan</div>
-                    </div>
-                    <div style="text-align:center;">
-                        <div id="stat-gelir" style="font-size:26px; font-weight:700; color:#A8D5A2; margin:4px 0;">0 ₺</div>
-                        <div style="font-size:12px; color:rgba(255,255,255,0.75);">Toplam Gelir</div>
-                    </div>
-                    <div style="text-align:center;">
-                        <div id="stat-gider" style="font-size:26px; font-weight:700; color:#FFAA80; margin:4px 0;">0 ₺</div>
-                        <div style="font-size:12px; color:rgba(255,255,255,0.75);">Toplam Gider</div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="grid-2">
-                <div class="card">
-                    <div style="font-size:13px; font-weight:700; color:#7A6B55; margin-bottom:12px; text-transform:uppercase;">Finansal Durum</div>
-                    <div style="display:flex; justify-content:space-between; margin-bottom:8px;"><span style="color:#5C7A4E">● Gelir</span><strong id="card-gelir">0 ₺</strong></div>
-                    <div style="display:flex; justify-content:space-between; margin-bottom:8px;"><span style="color:#C87137">● Gider</span><strong id="card-gider">0 ₺</strong></div>
-                </div>
-                <div class="card">
-                    <div style="font-size:13px; font-weight:700; color:#7A6B55; margin-bottom:12px; text-transform:uppercase;">Sürü Dağılımı</div>
-                    <div style="display:flex; justify-content:space-between; margin-bottom:6px;"><span>🐑 Dişi</span><strong id="card-disi">0</strong></div>
-                    <div style="display:flex; justify-content:space-between; margin-bottom:6px;"><span>🐏 Erkek</span><strong id="card-erkek">0</strong></div>
-                </div>
-            </div>
-        </div>
-
-        <div id="panel-hayvanlar" style="display:none;">
-            <div class="card">
-                <div class="row">
-                    <h2 style="margin:0; font-size:18px;">🐑 Hayvan Kayıtları</h2>
-                    <button class="btn-p" onclick="openModal()">+ Hayvan Ekle</button>
-                </div>
-                <input id="arama-input" class="input" style="margin-bottom:16px;" placeholder="Küpe no veya isim ara..." oninput="renderHayvanlar()">
-                
-                <div style="overflow-x:auto;">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Küpe No</th>
-                                <th>İsim</th>
-                                <th>Cins</th>
-                                <th>Cinsiyet</th>
-                                <th>Ağırlık</th>
-                                <th>⏱ İşlem</th>
-                            </tr>
-                        </thead>
-                        <tbody id="hayvan-tablo-vucut">
-                            </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div id="hayvan-modal" class="modal">
-        <div class="modal-box">
-            <h3 id="modal-baslik" style="margin-top:0; margin-bottom:20px;">Yeni Hayvan Ekle</h3>
-            <input type="hidden" id="form-index">
-            <div style="margin-bottom:12px;">
-                <label class="label">Küpe No *</label>
-                <input id="form-kupe" class="input">
-            </div>
-            <div style="margin-bottom:12px;">
-                <label class="label">İsim</label>
-                <input id="form-isim" class="input">
-            </div>
-            <div style="margin-bottom:12px;">
-                <label class="label">Cins</label>
-                <input id="form-cins" class="input">
-            </div>
-            <div style="margin-bottom:12px;">
-                <label class="label">Ağırlık (kg)</label>
-                <input id="form-agirlik" class="input" type="number">
-            </div>
-            <div style="margin-bottom:20px;">
-                <label class="label">Cinsiyet</label>
-                <select id="form-cinsiyet" class="input">
-                    <option value="Dişi">Dişi</option>
-                    <option value="Erkek">Erkek</option>
-                </select>
-            </div>
-            <div style="display:flex; gap:10px; justify-content:flex-end;">
-                <button class="btn-s" onclick="closeModal()">İptal</button>
-                <button class="btn-p" onclick="kaydetHayvan()">Kaydet</button>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        let hayvanlar = [];
-        let islemler = [];
-        let aktifTab = 'ozet';
-
-        // Verileri LocalStorage'dan Al
-        function verileriYukle() {
-            try {
-                hayvanlar = JSON.parse(localStorage.getItem("koyun_hayvanlar")) || [];
-                islemler = JSON.parse(localStorage.getItem("koyun_islemler")) || [];
-            } catch(e) {
-                hayvanlar = [];
-                islemler = [];
-            }
-        }
-
-        function verileriKaydet() {
-            localStorage.setItem("koyun_hayvanlar", JSON.stringify(hayvanlar));
-        }
-
-        // Sekme Değiştirme
-        function setTab(tabAdi) {
-            aktifTab = tabAdi;
-            document.getElementById('btn-ozet').classList.toggle('active', tabAdi === 'ozet');
-            document.getElementById('btn-hayvanlar').classList.toggle('active', tabAdi === 'hayvanlar');
+        function App() {
+            const [tab, setTab] = useState("ozet");
+            const [hayvanlar, setHayvanlar] = useState(() => JSON.parse(localStorage.getItem("koyun_hayvanlar")) || []);
+            const [agirlikGecmisi, setAgirlikGecmisi] = useState(() => JSON.parse(localStorage.getItem("koyun_agirlik")) || []);
+            const [dollenme] = useState(() => JSON.parse(localStorage.getItem("koyun_dollenme")) || []);
+            const [saglik] = useState(() => JSON.parse(localStorage.getItem("koyun_saglik")) || []);
             
-            document.getElementById('panel-ozet').style.display = tabAdi === 'ozet' ? 'block' : 'none';
-            document.getElementById('panel-hayvanlar').style.display = tabAdi === 'hayvanlar' ? 'block' : 'none';
+            const [modal, setModal] = useState(false);
+            const [modalAg, setModalAg] = useState(false);
+            const [secili, setSecili] = useState(null);
+            const [arama, setArama] = useState("");
             
-            if(tabAdi === 'ozet') renderOzet();
-            if(tabAdi === 'hayvanlar') renderHayvanlar();
-        }
+            const [form, setForm] = useState({ kupeNo:"", isim:"", cins:"", yas:"", cinsiyet:"Dişi", agirlik:"", notlar:"" });
+            const [formAg, setFormAg] = useState({ tarih:bugun(), agirlik:"" });
 
-        // Özet Ekranını Çiz
-        function renderOzet() {
-            let gelir = islemler.filter(i => i.tip === 'Gelir').reduce((t, i) => t + Number(i.tutar || 0), 0);
-            let gider = islemler.filter(i => i.tip === 'Gider').reduce((t, i) => t + Number(i.tutar || 0), 0);
-            let disiSayi = hayvanlar.filter(h => h.cinsiyet === 'Dişi').length;
-            let erkekSayi = hayvanlar.filter(h => h.cinsiyet === 'Erkek').length;
-
-            document.getElementById('stat-toplam').innerText = hayvanlar.length;
-            document.getElementById('stat-gelir').innerText = gelir.toLocaleString('tr-TR') + " ₺";
-            document.getElementById('stat-gider').innerText = gider.toLocaleString('tr-TR') + " ₺";
-            
-            document.getElementById('card-gelir').innerText = gelir.toLocaleString('tr-TR') + " ₺";
-            document.getElementById('card-gider').innerText = gider.toLocaleString('tr-TR') + " ₺";
-            document.getElementById('card-disi').innerText = disiSayi;
-            document.getElementById('card-erkek').innerText = erkekSayi;
-        }
-
-        // Hayvan Listesini Çiz
-        function renderHayvanlar() {
-            const aramaTerimi = document.getElementById('arama-input').value.toLowerCase();
-            const tBody = document.getElementById('hayvan-tablo-vucut');
-            tBody.innerHTML = '';
-
-            const filtreli = hayvanlar.filter(h => 
-                (h.kupeNo && h.kupeNo.includes(aramaTerimi)) || 
-                (h.isim && h.isim.toLowerCase().includes(aramaTerimi))
-            );
-
-            if(filtreli.length === 0) {
-                tBody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#7A6B55; padding:32px;">Kayıt bulunamadı.</td></tr>`;
-                return;
-            }
-
-            filtreli.forEach((h, index) => {
-                let gerçekIndex = hayvanlar.indexOf(h);
-                let badgeClass = h.cinsiyet === 'Dişi' ? 'badge disi' : 'badge erkek';
-                let tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td><strong>${h.kupeNo || '-'}</strong></td>
-                    <td>${h.isim || '-'}</td>
-                    <td>${h.cins || '-'}</td>
-                    <td><span class="${badgeClass}">${h.cinsiyet}</span></td>
-                    <td>${h.agirlik ? h.agirlik + ' kg' : '-'}</td>
-                    <td>
-                        <button class="btn-s" style="padding:4px 8px; font-size:12px;" onclick="editHayvan(${gerçekIndex})">✏️</button>
-                        <button class="btn-d" style="padding:4px 8px; font-size:12px;" onclick="silHayvan(${gerçekIndex})">🗑</button>
-                    </td>
-                `;
-                tBody.appendChild(tr);
-            });
-        }
-
-        // Modal Aç / Kapat
-        function openModal() {
-            document.getElementById('modal-baslik').innerText = "Yeni Hayvan Ekle";
-            document.getElementById('form-index').value = "";
-            document.getElementById('form-kupe').value = "";
-            document.getElementById('form-isim').value = "";
-            document.getElementById('form-cins').value = "";
-            document.getElementById('form-agirlik').value = "";
-            document.getElementById('form-cinsiyet').value = "Dişi";
-            document.getElementById('hayvan-modal').classList.add('open');
-        }
-
-        function closeModal() {
-            document.getElementById('hayvan-modal').classList.remove('open');
-        }
-
-        // Hayvan Kaydet (Ekleme ve Düzenleme)
-        function kaydetHayvan() {
-            let kupe = document.getElementById('form-kupe').value.trim();
-            if(!kupe) return alert("Küpe No zorunludur.");
-
-            let hNesnesi = {
-                kupeNo: kupe,
-                isim: document.getElementById('form-isim').value.trim(),
-                cins: document.getElementById('form-cins').value.trim(),
-                agirlik: document.getElementById('form-agirlik').value.trim(),
-                cinsiyet: document.getElementById('form-cinsiyet').value
+            const hKaydet = () => {
+                if(!form.kupeNo) return alert("Küpe No şarttır.");
+                const yeni = [...hayvanlar, { ...form, id:Date.now() }];
+                setHayvanlar(yeni); localStorage.setItem("koyun_hayvanlar", JSON.stringify(yeni));
+                setModal(false); setForm({ kupeNo:"", isim:"", cins:"", yas:"", cinsiyet:"Dişi", agirlik:"", notlar:"" });
             };
 
-            let idx = document.getElementById('form-index').value;
-            if(idx === "") {
-                hayvanlar.push(hNesnesi);
-            } else {
-                hayvanlar[Number(idx)] = hNesnesi;
-            }
+            const hSil = (id) => {
+                if(!confirm("Silinsin mi?")) return;
+                const yeni = hayvanlar.filter(h => h.id !== id);
+                setHayvanlar(yeni); localStorage.setItem("koyun_hayvanlar", JSON.stringify(yeni));
+            };
 
-            verileriKaydet();
-            closeModal();
-            renderHayvanlar();
+            const agKaydet = () => {
+                if(!formAg.agirlik) return alert("Ağırlık girin.");
+                const yeni = [...agirlikGecmisi, { ...formAg, kupeNo:secili.kupeNo, id:Date.now() }];
+                setAgirlikGecmisi(yeni); localStorage.setItem("koyun_agirlik", JSON.stringify(yeni));
+                setModalAg(false); setFormAg({ tarih:bugun(), agirlik:"" });
+            };
+
+            return (
+                <div style={{minHeight:"100vh", background:R.zemin}}>
+                    <div style={{background:R.birincil, color:"#fff", padding:"16px 24px", display:"flex", alignItems:"center", gap:12}}>
+                        <span style={{fontSize:24}}>🚜</span><h1 style={{margin:0, fontSize:20}}>Çiftlik Yönetimi</h1>
+                    </div>
+
+                    <div style={{background:"#fff", borderBottom:`1px solid ${R.sinir}`, display:"flex"}}>
+                        <button style={{padding:14, border:"none", background:"none", cursor:"pointer", fontWeight:tab==="ozet"?"700":"400", color:tab==="ozet"?R.birincil:R.metinAcik, borderBottom:tab==="ozet"?`3px solid ${R.birincil}`:"3px solid transparent"}} onClick={()=>setTab("ozet")}>📊 Özet</button>
+                        <button style={{padding:14, border:"none", background:"none", cursor:"pointer", fontWeight:tab==="hayvanlar"?"700":"400", color:tab==="hayvanlar"?R.birincil:R.metinAcik, borderBottom:tab==="hayvanlar"?`3px solid ${R.birincil}`:"3px solid transparent"}} onClick={()=>setTab("hayvanlar")}>🐑 Hayvanlar</button>
+                    </div>
+
+                    <div style={{padding:"20px 16px", maxWidth:900, margin:"0 auto"}}>
+                        {tab === "ozet" && (
+                            <div>
+                                <div style={{...S.card, background:`linear-gradient(135deg,${R.birincil} 0%,#3d5c32 100%)`, color:"#fff", textAlign:"center"}}>
+                                    <div style={{fontSize:28, fontWeight:"700"}}>{hayvanlar.length}</div>
+                                    <div style={{fontSize:12, opacity:0.8}}>Toplam Hayvan Sayısı</div>
+                                </div>
+                                <div style={S.card}>
+                                    <h3 style={{margin:"0 0 12px 0"}}>Sürü Dağılımı</h3>
+                                    <div style={{display:"flex", justifyBetween:"space-between", marginBottom:6}}><span>🐑 Dişi</span><strong>{hayvanlar.filter(h=>h.cinsiyet==="Dişi").length} baş</strong></div>
+                                    <div style={{display:"flex", justifyBetween:"space-between"}}><span>🐏 Erkek</span><strong>{hayvanlar.filter(h=>h.cinsiyet==="Erkek").length} baş</strong></div>
+                                </div>
+                            </div>
+                        )}
+
+                        {tab === "hayvanlar" && (
+                            <div style={S.card}>
+                                <div style={{display:"flex", justifyBetween:"space-between", alignItems:"center", marginBottom:16}}>
+                                    <h2 style={{margin:0, fontSize:18}}>Sürü Listesi</h2>
+                                    <button style={S.btnP} onClick={()=>setModal(true)}>+ Ekle</button>
+                                </div>
+                                <input style={S.input} placeholder="Küpe no veya isim ara..." value={arama} onChange={e=>setArama(e.target.value)}/>
+                                <div style={{overflowX:"auto"}}>
+                                    <table style={S.table}>
+                                        <thead><tr><th style={S.th}>Küpe No</th><th style={S.th}>İsim</th><th style={S.th}>Cinsiyet</th><th style={S.th}>Ağırlık</th><th style={S.th}>Aksiyon</th></tr></thead>
+                                        <tbody>
+                                            {hayvanlar.filter(h=>h.kupeNo.includes(arama)||h.isim.toLowerCase().includes(arama.toLowerCase())).map((h,i)=>{
+                                                const sonAg = agirlikGecmisi.filter(a=>a.kupeNo===h.kupeNo).sort((a,b)=>b.tarih.localeCompare(a.tarih))[0];
+                                                return (
+                                                    <tr key={i}>
+                                                        <td style={S.td}><strong>{h.kupeNo}</strong></td>
+                                                        <td style={S.td}>{h.isim||"-"}</td>
+                                                        <td style={S.td}>{h.cinsiyet}</td>
+                                                        <td style={S.td}>{sonAg?`${sonAg.agirlik} kg`:h.agirlik?`${h.agirlik} kg`:"-"}</td>
+                                                        <td style={S.td}>
+                                                            <button style={{...S.btnS, padding:"4px 8px", fontSize:12, marginRight:4}} onClick={()=>{setSecili(h); setModalAg(true);}}>⚖️</button>
+                                                            <button style={{background:R.tehlike, color:"#fff", border:"none", borderRadius:5, padding:"4px 8px", fontSize:12}} onClick={()=>hSil(h.id)}>🗑</button>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {modal && (
+                        <div style={S.modal}>
+                            <div style={{background:"#fff", padding:24, borderRadius:12, width:"100%", maxWidth:450}}>
+                                <h3 style={{marginTop:0}}>Yeni Hayvan Kaydı</h3>
+                                <label style={{fontSize:12, color:R.metinAcik}}>KÜPE NO *</label>
+                                <input style={S.input} value={form.kupeNo} onChange={e=>setForm({...form,kupeNo:e.target.value})}/>
+                                <label style={{fontSize:12, color:R.metinAcik}}>İSİM</label>
+                                <input style={S.input} value={form.isim} onChange={e=>setForm({...form,isim:e.target.value})}/>
+                                <label style={{fontSize:12, color:R.metinAcik}}>CİNSİYET</label>
+                                <select style={S.input} value={form.cinsiyet} onChange={e=>setForm({...form,cinsiyet:e.target.value})}><option>Dişi</option><option>Erkek</option></select>
+                                <label style={{fontSize:12, color:R.metinAcik}}>BAŞLANGIÇ AĞIRLIĞI (KG)</label>
+                                <input style={S.input} type="number" value={form.agirlik} onChange={e=>setForm({...form,agirlik:e.target.value})}/>
+                                <div style={{display:"flex", gap:10, justifyEnd:"flex-end", marginTop:12}}>
+                                    <button style={S.btnS} onClick={()=>setModal(false)}>İptal</button>
+                                    <button style={S.btnP} onClick={hKaydet}>Kaydet</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {modalAg && secili && (
+                        <div style={S.modal}>
+                            <div style={{background:"#fff", padding:24, borderRadius:12, width:"100%", maxWidth:400}}>
+                                <h3 style={{marginTop:0}}>{secili.kupeNo} - Tartım Girişi</h3>
+                                <label style={{fontSize:12, color:R.metinAcik}}>TARTIM TARİHİ</label>
+                                <input style={S.input} type="date" value={formAg.tarih} onChange={e=>setFormAg({...formAg,tarih:e.target.value})}/>
+                                <label style={{fontSize:12, color:R.metinAcik}}>YENİ AĞIRLIK (KG) *</label>
+                                <input style={S.input} type="number" value={formAg.agirlik} onChange={e=>setFormAg({...formAg,agirlik:e.target.value})}/>
+                                <div style={{display:"flex", gap:10, justifyEnd:"flex-end", marginTop:12}}>
+                                    <button style={S.btnS} onClick={()=>setModalAg(false)}>İptal</button>
+                                    <button style={S.btnP} onClick={agKaydet}>Kaydet</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
         }
 
-        // Düzenleme Butonu
-        function editHayvan(index) {
-            let h = hayvanlar[index];
-            document.getElementById('modal-baslik').innerText = "Hayvanı Düzenle";
-            document.getElementById('form-index').value = index;
-            document.getElementById('form-kupe').value = h.kupeNo || "";
-            document.getElementById('form-isim').value = h.isim || "";
-            document.getElementById('form-cins').value = h.cins || "";
-            document.getElementById('form-agirlik').value = h.agirlik || "";
-            document.getElementById('form-cinsiyet').value = h.cinsiyet || "Dişi";
-            document.getElementById('hayvan-modal').classList.add('open');
-        }
-
-        // Silme Butonu
-        function silHayvan(index) {
-            if(!confirm("Bu hayvan kaydını silmek istediğinize emin misiniz?")) return;
-            hayvanlar.splice(index, 1);
-            verileriKaydet();
-            renderHayvanlar();
-        }
-
-        // İlk Çalıştırma
-        window.onload = function() {
-            verileriYukle();
-            renderOzet();
-        };
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
     </script>
 </body>
 </html>
