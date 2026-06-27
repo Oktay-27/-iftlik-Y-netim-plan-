@@ -9,7 +9,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.12/babel.min.js" crossorigin></script>
     <style>
         body { margin: 0; padding: 0; background: #F7F3EE; }
-        div::-webkit-scrollbar { height: 4px; }
+        div::-webkit-scrollbar { height: 4px; width: 4px; }
         div::-webkit-scrollbar-thumb { background: #E2D9CD; border-radius: 10px; }
     </style>
 </head>
@@ -17,7 +17,6 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        // Global React importlarını tanımlıyoruz (Kodun orijinal yapısını korumak için)
         const { useState, useEffect } = React;
 
         const APP_ADI = "Çiftlik Yönetimi";
@@ -32,11 +31,26 @@
           agirlikGecmisi: "koyun_agirlik",
         };
 
+        // GitHub Pages veya yerel çalışma için localStorage fallback'li veri yükleme/kaydetme
         const loadData = async (key) => {
-          try { const r = await window.storage.get(key); return r ? JSON.parse(r.value) : []; } catch { return []; }
+          try { 
+            if (window.storage && typeof window.storage.get === 'function') {
+              const r = await window.storage.get(key); 
+              return r ? JSON.parse(r.value) : []; 
+            }
+            const local = localStorage.getItem(key);
+            return local ? JSON.parse(local) : [];
+          } catch { return []; }
         };
+
         const saveData = async (key, data) => {
-          try { await window.storage.set(key, JSON.stringify(data)); } catch (e) { console.error(e); }
+          try { 
+            if (window.storage && typeof window.storage.set === 'function') {
+              await window.storage.set(key, JSON.stringify(data)); 
+              return;
+            }
+            localStorage.setItem(key, JSON.stringify(data));
+          } catch (e) { console.error(e); }
         };
 
         const bugun = new Date().toISOString().split("T")[0];
@@ -51,7 +65,7 @@
 
         const S = {
           app:{minHeight:"100vh",background:R.zemin,fontFamily:"'Georgia',serif",color:R.metin},
-          header:{background:R.birincil,color:"#fff",padding:"16px 24px",display:"flex",alignItems:"center",gap:12,boxShadow:"0 2px 8px rgba(0,0,0,0.15)"},
+          header:{background:R.birincil,color:"#fff",padding:"16px 24px",display:"flex",alignItems:"center",justifyContent:"space-between",boxShadow:"0 2px 8px rgba(0,0,0,0.15)"},
           nav:{background:"#fff",borderBottom:`1px solid ${R.sinir}`,display:"flex",overflowX:"auto",padding:"0 16px"},
           navBtn:(a)=>({padding:"12px 14px",border:"none",background:"none",cursor:"pointer",fontFamily:"inherit",fontSize:13,fontWeight:a?"700":"400",color:a?R.birincil:R.metinAcik,borderBottom:a?`3px solid ${R.birincil}`:"3px solid transparent",whiteSpace:"nowrap"}),
           content:{padding:"20px 16px",maxWidth:900,margin:"0 auto"},
@@ -122,15 +136,15 @@
         function exportExcel(hayvanlar,islemler,saglik,dogumlar,dollenme,rasyonlar){
           const rows=[];
           rows.push(["=== HAYVAN KAYITLARI ==="]);
-          rows.push(["Küpe No","İsim","Cins","Yaş","Cinsiyet","Ağırlık"]);
+          rows.push(["Kupe No","Isim","Cins","Yas","Cinsiyet","Agirlik"]);
           hayvanlar.forEach(h=>rows.push([h.kupeNo,h.isim,h.cins,h.yas,h.cinsiyet,h.agirlik]));
           rows.push([]);
-          rows.push(["=== GELİR/GİDER ==="]);
-          rows.push(["Tarih","Tip","Kategori","Tutar","Açıklama"]);
+          rows.push(["=== GELIR/GIDER ==="]);
+          rows.push(["Tarih","Tip","Kategori","Tutar","Aciklama"]);
           islemler.forEach(i=>rows.push([i.tarih,i.tip,i.kategori,i.tutar,i.aciklama]));
           rows.push([]);
-          rows.push(["=== DÖLLENME ==="]);
-          rows.push(["Küpe No","Döllenme","Tahmini Doğum","Kalan Gün"]);
+          rows.push(["=== DOLLENME ==="]);
+          rows.push(["Kupe No","Dollenme","Tahmini Dogum","Kalan Gun"]);
           dollenme.forEach(d=>rows.push([d.kupeNo,d.dollenme,d.tahminiDogum,kalanGun(d.tahminiDogum)]));
           const csv=rows.map(r=>r.map(c=>`"${c??""}"`).join(",")).join("\n");
           const blob=new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8;"});
@@ -138,7 +152,7 @@
           const a=document.createElement("a"); a.href=url; a.download="ciftlik.csv"; a.click();
         }
 
-        // ─── ÖZET ─────────────────────────────────────────────────────────────────────
+        // ─── ÖZET SEKMESİ ─────────────────────────────────────────────────────────────
         function Ozet({hayvanlar,islemler,dogumlar,dollenme,rasyonlar,saglik}){
           const gelir=islemler.filter(i=>i.tip==="Gelir").reduce((t,i)=>t+Number(i.tutar),0);
           const gider=islemler.filter(i=>i.tip==="Gider").reduce((t,i)=>t+Number(i.tutar),0);
@@ -159,12 +173,7 @@
 
           const yakDogum=dollenme.filter(d=>d.tahminiDogum).map(d=>({...d,kalan:kalanGun(d.tahminiDogum)})).filter(d=>d.kalan!==null&&d.kalan>=0&&d.kalan<=30).sort((a,b)=>a.kalan-b.kalan);
           const yakRasyon=rasyonlar.filter(r=>r.sonrakiDegisim).map(r=>({...r,kalan:kalanGun(r.sonrakiDegisim)})).filter(r=>r.kalan!==null&&r.kalan>=0&&r.kalan<=14).sort((a,b)=>a.kalan-b.kalan);
-
-          // Aşı hatırlatmaları
           const yakAsi=saglik.filter(s=>s.tekrarTarihi).map(s=>({...s,kalan:kalanGun(s.tekrarTarihi)})).filter(s=>s.kalan!==null&&s.kalan>=0&&s.kalan<=14).sort((a,b)=>a.kalan-b.kalan);
-
-          const sonAyStr=new Date(new Date().setMonth(new Date().getMonth()-1)).toISOString().split("T")[0];
-          const skor=Math.min(100,Math.max(0,100-saglik.filter(s=>s.tarih>=sonAyStr).length*5+(hayvanlar.length>0?20:0)));
 
           return(
             <div>
@@ -271,7 +280,7 @@
           );
         }
 
-        // ─── HAYVAN ───────────────────────────────────────────────────────────────────
+        // ─── HAYVAN SEKMESİ ───────────────────────────────────────────────────────────
         function HayvanKayitlari({hayvanlar,setHayvanlar,agirlikGecmisi,setAgirlikGecmisi}){
           const bos={kupeNo:"",isim:"",cins:"",yas:"",cinsiyet:"Dişi",agirlik:"",notlar:""};
           const [modal,setModal]=useState(false);
@@ -311,9 +320,10 @@
                 <input style={{...S.input,marginBottom:16}} placeholder="Ara..." value={arama} onChange={e=>setArama(e.target.value)}/>
                 {filtreli.length===0?<div style={{color:R.metinAcik,textAlign:"center",padding:32}}>Kayıt yok.</div>:(
                   <div style={{overflowX:"auto"}}>
-                    <table style={S.table}>.th}>{h}</th>)}</tr></thead>
+                    <table style={S.table}>
+                      <thead><tr>{["Küpe No","İsim","Cins","Yaş","Cinsiyet","Ağırlık",""].map(h=><th key={h} style={S.th}>{h}</th>)}</tr></thead>
                       <tbody>{filtreli.map((h,i)=>{
-                        const ag=agirlikGecmisi.filter(a=>a.kupeNo===h.kupeNo).sort((a,b)=>b.tarih.localeCompare(a.tarih));
+                        const ag = agirlikGecmisi.filter(a=>a.kupeNo===h.kupeNo).sort((a,b)=>b.tarih.localeCompare(a.tarih));
                         return(
                           <tr key={i}>
                             <td style={S.td}><strong>{h.kupeNo}</strong></td>
@@ -355,8 +365,236 @@
           );
         }
 
-        // Ana Kök Bileşeni (State yönetimini kurup ekranları birleştiren kısım)
+        // ─── GELİR / GİDER SEKMESİ ────────────────────────────────────────────────────
+        function KasaIslemleri({islemler,setIslemler}){
+          const bos={tarih:bugun,tip:"Gider",kategori:"Yem",tutar:"",aciklama:""};
+          const [modal,setModal]=useState(false);
+          const [form,setForm]=useState(bos);
+
+          const kaydet=async()=>{
+            if(!form.tutar) return alert("Tutar giriniz.");
+            const yeni=[...islemler,{...form,id:Date.now()}];
+            setIslemler(yeni); await saveData(STORAGE_KEYS.islemler,yeni);
+            setModal(false); setForm(bos);
+          };
+
+          const sil=async(id)=>{
+            if(!confirm("Silmek istiyor musunuz?"))return;
+            const yeni=islemler.filter(i=>i.id!==id);
+            setIslemler(yeni); await saveData(STORAGE_KEYS.islemler,yeni);
+          };
+
+          return(
+            <div style={S.card}>
+              <div style={S.row}><h2 style={S.h2}>💰 Gelir / Gider Takibi</h2><button style={S.btnP} onClick={()=>setModal(true)}>+ İşlem Ekle</button></div>
+              <div style={{overflowX:"auto"}}>
+                <table style={S.table}>
+                  <thead><tr>{["Tarih","Tip","Kategori","Tutar","Açıklama",""].map(h=><th key={h} style={S.th}>{h}</th>)}</tr></thead>
+                  <tbody>{islemler.map((i)=>(
+                    <tr key={i.id}>
+                      <td style={S.td}>{i.tarih}</td>
+                      <td style={S.td}><span style={S.badge(i.tip==="Gelir"?R.birincil:R.vurgu)}>{i.tip}</span></td>
+                      <td style={S.td}>{i.kategori}</td>
+                      <td style={S.td}><strong>{Number(i.tutar).toLocaleString("tr-TR")} ₺</strong></td>
+                      <td style={S.td}>{i.aciklama||"-"}</td>
+                      <td style={S.td}><button style={S.btnD} onClick={()=>sil(i.id)}>🗑</button></td>
+                    </tr>
+                  ))}</tbody>
+                </table>
+              </div>
+              {modal&&<Modal title="Yeni Finansal İşlem" onClose={()=>setModal(false)} onSave={kaydet}>
+                <div style={S.g2}>
+                  <F label="Tarih"><input style={S.input} type="date" value={form.tarih} onChange={e=>setForm({...form,tarih:e.target.value})}/></F>
+                  <F label="İşlem Tipi"><select style={S.input} value={form.tip} onChange={e=>setForm({...form,tip:e.target.value})}><option>Gider</option><option>Gelir</option></select></F>
+                  <F label="Kategori"><input style={S.input} value={form.kategori} onChange={e=>setForm({...form,kategori:e.target.value})} placeholder="Yem, Veteriner, Satış..."/></F>
+                  <F label="Tutar (₺)"><input style={S.input} type="number" value={form.tutar} onChange={e=>setForm({...form,tutar:e.target.value})}/></F>
+                </div>
+                <F label="Açıklama"><input style={S.input} value={form.aciklama} onChange={e=>setForm({...form,aciklama:e.target.value})}/></F>
+              </Modal>}
+            </div>
+          );
+        }
+
+        // ─── DÖLLENME / GEBELİK SEKMESİ ───────────────────────────────────────────────
+        function DollenmeTakibi({dollenme,setDollenme,hayvanlar}){
+          const bos={kupeNo:"",dollenme:bugun,tahminiDogum:tahminiDogumHesapla(bugun),notlar:""};
+          const [modal,setModal]=useState(false);
+          const [form,setForm]=useState(bos);
+
+          const tarihkur=(d)=>{ setForm({...form,dollenme:d,tahminiDogum:tahminiDogumHesapla(d)}); };
+
+          const kaydet=async()=>{
+            if(!form.kupeNo) return alert("Küpe No seçiniz.");
+            const yeni=[...dollenme,{...form,id:Date.now()}];
+            setDollenme(yeni); await saveData(STORAGE_KEYS.dollenme,yeni);
+            setModal(false); setForm(bos);
+          };
+
+          const sil=async(id)=>{
+            if(!confirm("Silmek istiyor musunuz?"))return;
+            const yeni=dollenme.filter(d=>d.id!==id);
+            setDollenme(yeni); await saveData(STORAGE_KEYS.dollenme,yeni);
+          };
+
+          return(
+            <div style={S.card}>
+              <div style={S.row}><h2 style={S.h2}>🐏 Döllenme & Gebelik Takibi</h2><button style={S.btnP} onClick={()=>setModal(true)}>+ Koç Katımı / Gebelik</button></div>
+              <div style={{overflowX:"auto"}}>
+                <table style={S.table}>
+                  <thead><tr>{["Küpe No","Tarih","Tahmini Doğum","Durum",""].map(h=><th key={h} style={S.th}>{h}</th>)}</tr></thead>
+                  <tbody>{dollenme.map((d)=>(
+                    <tr key={d.id}>
+                      <td style={S.td}><strong>{d.kupeNo}</strong></td>
+                      <td style={S.td}>{d.dollenme}</td>
+                      <td style={S.td}>{d.tahminiDogum}</td>
+                      <td style={S.td}><KalanBadge tarih={d.tahminiDogum}/></td>
+                      <td style={S.td}><button style={S.btnD} onClick={()=>sil(d.id)}>🗑</button></td>
+                    </tr>
+                  ))}</tbody>
+                </table>
+              </div>
+              {modal&&<Modal title="Gebelik / Döllenme Kaydı" onClose={()=>setModal(false)} onSave={kaydet}>
+                <div style={S.g2}>
+                  <F label="Hayvan Seç (Dişi)"><select style={S.input} value={form.kupeNo} onChange={e=>setForm({...form,kupeNo:e.target.value})}><option value="">Seçiniz...</option>{hayvanlar.filter(h=>h.cinsiyet==="Dişi").map(h=><option key={h.kupeNo} value={h.kupeNo}>{h.kupeNo} - {h.isim}</option>)}</select></F>
+                  <F label="Döllenme Tarihi"><input style={S.input} type="date" value={form.dollenme} onChange={e=>tarihkur(e.target.value)}/></F>
+                  <F label="Tahmini Doğum (+150 Gün)"><input style={S.input} type="date" value={form.tahminiDogum} readOnly/></F>
+                </div>
+              </Modal>}
+            </div>
+          );
+        }
+
+        // ─── SAĞLIK / VETERİNER SEKMESİ ───────────────────────────────────────────────
+        function SaglikIslemleri({saglik,setSaglik,hayvanlar}){
+          const bos={kupeNo:"",tarih:bugun,tip:"Aşı",ilacAd:"",tekrarTarihi:"",notlar:""};
+          const [modal,setModal]=useState(false);
+          const [form,setForm]=useState(bos);
+
+          const kaydet=async()=>{
+            if(!form.kupeNo) return alert("Küpe No seçiniz.");
+            const yeni=[...saglik,{...form,id:Date.now()}];
+            setSaglik(yeni); await saveData(STORAGE_KEYS.saglik,yeni);
+            setModal(false); setForm(bos);
+          };
+
+          return(
+            <div style={S.card}>
+              <div style={S.row}><h2 style={S.h2}>💉 Sağlık & Aşı Takibi</h2><button style={S.btnP} onClick={()=>setModal(true)}>+ Sağlık Kaydı</button></div>
+              <div style={{overflowX:"auto"}}>
+                <table style={S.table}>
+                  <thead><tr>{["Küpe No","Tarih","Tip","İlaç/Uygulama","Tekrar Hatırlatması",""].map(h=><th key={h} style={S.th}>{h}</th>)}</tr></thead>
+                  <tbody>{saglik.map((s)=>(
+                    <tr key={s.id}>
+                      <td style={S.td}><strong>{s.kupeNo}</strong></td>
+                      <td style={S.td}>{s.tarih}</td>
+                      <td style={S.td}><span style={S.badge(s.tip==="Aşı"?R.birincil:R.uyari)}>{s.tip}</span></td>
+                      <td style={S.td}>{s.ilacAd}</td>
+                      <td style={S.td}>{s.tekrarTarihi?<KalanBadge tarih={s.tekrarTarihi}/>:"-"}</td>
+                      <td style={S.td}><button style={S.btnD} onClick={async()=>{if(confirm("Silinsin mi?")){const y=saglik.filter(x=>x.id!==s.id); setSaglik(y); await saveData(STORAGE_KEYS.saglik,y);}}}>🗑</button></td>
+                    </tr>
+                  ))}</tbody>
+                </table>
+              </div>
+              {modal&&<Modal title="Yeni Sağlık / Aşı Kaydı" onClose={()=>setModal(false)} onSave={kaydet}>
+                <div style={S.g2}>
+                  <F label="Hayvan"><select style={S.input} value={form.kupeNo} onChange={e=>setForm({...form,kupeNo:e.target.value})}><option value="">Seçiniz...</option>{hayvanlar.map(h=><option key={h.kupeNo} value={h.kupeNo}>{h.kupeNo}</option>)}</select></F>
+                  <F label="Uygulama Tarihi"><input style={S.input} type="date" value={form.tarih} onChange={e=>setForm({...form,tarih:e.target.value})}/></F>
+                  <F label="Tür"><select style={S.input} value={form.tip} onChange={e=>setForm({...form,tip:e.target.value})}><option>Aşı</option><option>Tedavi</option><option>Parazit</option><option>Bakım</option></select></F>
+                  <F label="İlaç / Uygulama Adı"><input style={S.input} value={form.ilacAd} onChange={e=>setForm({...form,ilacAd:e.target.value})}/></F>
+                  <F label="Tekrar Tarihi (Varsa)"><input style={S.input} type="date" value={form.tekrarTarihi} onChange={e=>setForm({...form,tekrarTarihi:e.target.value})}/></F>
+                </div>
+              </Modal>}
+            </div>
+          );
+        }
+
+        // ─── DOĞUMLAR SEKMESİ ─────────────────────────────────────────────────────────
+        function DogumKayitlari({dogumlar,setDogumlar,hayvanlar}){
+          const bos={kupeNo:"",tarih:bugun,yavrular:"1",notlar:""};
+          const [modal,setModal]=useState(false);
+          const [form,setForm]=useState(bos);
+
+          const kaydet=async()=>{
+            if(!form.kupeNo) return alert("Ana Küpe No seçiniz.");
+            const yeni=[...dogumlar,{...form,id:Date.now()}];
+            setDogumlar(yeni); await saveData(STORAGE_KEYS.dogumlar,yeni);
+            setModal(false); setForm(bos);
+          };
+
+          return(
+            <div style={S.card}>
+              <div style={S.row}><h2 style={S.h2}>🐣 Doğum Kayıtları</h2><button style={S.btnP} onClick={()=>setModal(true)}>+ Doğum Ekle</button></div>
+              <div style={{overflowX:"auto"}}>
+                <table style={S.table}>
+                  <thead><tr>{["Ana Küpe No","Doğum Tarihi","Yavru Sayısı","Notlar",""].map(h=><th key={h} style={S.th}>{h}</th>)}</tr></thead>
+                  <tbody>{dogumlar.map((d)=>(
+                    <tr key={d.id}>
+                      <td style={S.td}><strong>{d.kupeNo}</strong></td>
+                      <td style={S.td}>{d.tarih}</td>
+                      <td style={S.td}><span style={S.badge(R.birincil)}>{d.yavrular} Kuzu</span></td>
+                      <td style={S.td}>{d.notlar||"-"}</td>
+                      <td style={S.td}><button style={S.btnD} onClick={async()=>{if(confirm("Silinsin mi?")){const y=dogumlar.filter(x=>x.id!==d.id); setDogumlar(y); await saveData(STORAGE_KEYS.dogumlar,y);}}}>🗑</button></td>
+                    </tr>
+                  ))}</tbody>
+                </table>
+              </div>
+              {modal&&<Modal title="Yeni Doğum Kaydı" onClose={()=>setModal(false)} onSave={kaydet}>
+                <div style={S.g3}>
+                  <F label="Ana Küpe No"><select style={S.input} value={form.kupeNo} onChange={e=>setForm({...form,kupeNo:e.target.value})}><option value="">Seçiniz...</option>{hayvanlar.filter(h=>h.cinsiyet==="Dişi").map(h=><option key={h.kupeNo} value={h.kupeNo}>{h.kupeNo}</option>)}</select></F>
+                  <F label="Doğum Tarihi"><input style={S.input} type="date" value={form.tarih} onChange={e=>setForm({...form,tarih:e.target.value})}/></F>
+                  <F label="Yavru Sayısı"><input style={S.input} type="number" min="1" value={form.yavrular} onChange={e=>setForm({...form,yavrular:e.target.value})}/></F>
+                </div>
+                <F label="Notlar"><input style={S.input} value={form.notlar} onChange={e=>setForm({...form,notlar:e.target.value})}/></F>
+              </Modal>}
+            </div>
+          );
+        }
+
+        // ─── RASYON SEKMESİ ───────────────────────────────────────────────────────────
+        function RasyonYonetimi({rasyonlar,setRasyonlar}){
+          const bos={isim:"",hayvanGrubu:"",icerik:"",sonrakiDegisim:""};
+          const [modal,setModal]=useState(false);
+          const [form,setForm]=useState(bos);
+
+          const kaydet=async()=>{
+            if(!form.isim) return alert("Rasyon adı zorunludur.");
+            const yeni=[...rasyonlar,{...form,id:Date.now()}];
+            setRasyonlar(yeni); await saveData(STORAGE_KEYS.rasyonlar,yeni);
+            setModal(false); setForm(bos);
+          };
+
+          return(
+            <div style={S.card}>
+              <div style={S.row}><h2 style={S.h2}>🌾 Rasyon & Yem Reçeteleri</h2><button style={S.btnP} onClick={()=>setModal(true)}>+ Rasyon Reçetesi</button></div>
+              <div style={{overflowX:"auto"}}>
+                <table style={S.table}>
+                  <thead><tr>{["Rasyon Adı","Grup","İçerik Detayı","Değişim Zamanı",""].map(h=><th key={h} style={S.th}>{h}</th>)}</tr></thead>
+                  <tbody>{rasyonlar.map((r)=>(
+                    <tr key={r.id}>
+                      <td style={S.td}><strong>{r.isim}</strong></td>
+                      <td style={S.td}>{r.hayvanGrubu}</td>
+                      <td style={S.td}>{r.icerik}</td>
+                      <td style={S.td}>{r.sonrakiDegisim?<KalanBadge tarih={r.sonrakiDegisim}/>:"-"}</td>
+                      <td style={S.td}><button style={S.btnD} onClick={async()=>{if(confirm("Silinsin mi?")){const y=rasyonlar.filter(x=>x.id!==r.id); setRasyonlar(y); await saveData(STORAGE_KEYS.rasyonlar,y);}}}>🗑</button></td>
+                    </tr>
+                  ))}</tbody>
+                </table>
+              </div>
+              {modal&&<Modal title="Yeni Rasyon Reçetesi" onClose={()=>setModal(false)} onSave={kaydet}>
+                <div style={S.g2}>
+                  <F label="Rasyon / Yem Adı"><input style={S.input} value={form.isim} onChange={e=>setForm({...form,isim:e.target.value})} placeholder="Besi Büyütme, Doğum Öncesi..."/></F>
+                  <F label="Uygulanan Hayvan Grubu"><input style={S.input} value={form.hayvanGrubu} onChange={e=>setForm({...form,hayvanGrubu:e.target.value})} placeholder="Kuzular, Gebe Koyunlar..."/></F>
+                </div>
+                <F label="İçerik ve Karışım Oranları"><textarea style={{...S.input,minHeight:60}} value={form.icerik} onChange={e=>setForm({...form,icerik:e.target.value})} placeholder="Arpa %40, Yonca %30..."/></F>
+                <F label="Sonraki Rasyon Değişim Tarihi"><input style={S.input} type="date" value={form.sonrakiDegisim} onChange={e=>setForm({...form,sonrakiDegisim:e.target.value})}/></F>
+              </Modal>}
+            </div>
+          );
+        }
+
+        // ─── ANA BİLEŞEN (ROUTER & STATE YÖNETİMİ) ────────────────────────────────────
         function App() {
+          const [sekme, setSekme] = useState("ozet");
           const [hayvanlar, setHayvanlar] = useState([]);
           const [islemler, setIslemler] = useState([]);
           const [rasyonlar, setRasyonlar] = useState([]);
@@ -366,7 +604,7 @@
           const [agirlikGecmisi, setAgirlikGecmisi] = useState([]);
 
           useEffect(() => {
-            async function init() {
+            async function verileriGetir() {
               setHayvanlar(await loadData(STORAGE_KEYS.hayvanlar));
               setIslemler(await loadData(STORAGE_KEYS.islemler));
               setRasyonlar(await loadData(STORAGE_KEYS.rasyonlar));
@@ -375,37 +613,44 @@
               setDollenme(await loadData(STORAGE_KEYS.dollenme));
               setAgirlikGecmisi(await loadData(STORAGE_KEYS.agirlikGecmisi));
             }
-            init();
+            verileriGetir();
           }, []);
 
           return (
             <div style={S.app}>
-              <div style={S.header}><h2>🚜 {APP_ADI}</h2></div>
+              <div style={S.header}>
+                <h2 style={{margin:0, fontSize:20}}>🚜 {APP_ADI}</h2>
+                <button style={S.btnS} onClick={()=>exportExcel(hayvanlar,islemler,saglik,dogumlar,dollenme,rasyonlar)}>📥 Excel (CSV) Çıktısı</button>
+              </div>
+
+              <div style={S.nav}>
+                {[
+                  {id:"ozet", l:"🌿 Özet"},
+                  {id:"hayvanlar", l:"🐑 Hayvan Kayıtları"},
+                  {id:"kasa", l:"💰 Gelir/Gider"},
+                  {id:"gebelik", l:"🐏 Döllenme & Gebelik"},
+                  {id:"saglik", l:"💉 Sağlık & Aşı"},
+                  {id:"dogum", l:"🐣 Doğumlar"},
+                  {id:"rasyon", l:"🌾 Rasyonlar"}
+                ].map(t => (
+                  <button key={t.id} style={S.navBtn(sekme===t.id)} onClick={()=>setSekme(t.id)}>{t.l}</button>
+                ))}
+              </div>
+
               <div style={S.content}>
-                <Ozet 
-                  hayvanlar={hayvanlar} 
-                  islemler={islemler} 
-                  dogumlar={dogumlar} 
-                  dollenme={dollenme} 
-                  rasyonlar={rasyonlar} 
-                  saglik={saglik} 
-                />
-                <div style={{marginTop:24}}>
-                  <HayvanKayitlari 
-                    hayvanlar={hayvanlar} 
-                    setHayvanlar={setHayvanlar} 
-                    agirlikGecmisi={agirlikGecmisi} 
-                    setAgirlikGecmisi={setAgirlikGecmisi} 
-                  />
-                </div>
+                {sekme === "ozet" && <Ozet hayvanlar={hayvanlar} islemler={islemler} dogumlar={dogumlar} dollenme={dollenme} rasyonlar={rasyonlar} saglik={saglik} />}
+                {sekme === "hayvanlar" && <HayvanKayitlari hayvanlar={hayvanlar} setHayvanlar={setHayvanlar} agirlikGecmisi={agirlikGecmisi} setAgirlikGecmisi={setAgirlikGecmisi} />}
+                {sekme === "kasa" && <KasaIslemleri islemler={islemler} setIslemler={setIslemler} />}
+                {sekme === "gebelik" && <DollenmeTakibi dollenme={dollenme} setDollenme={setDollenme} hayvanlar={hayvanlar} />}
+                {sekme === "saglik" && <SaglikIslemleri saglik={saglik} setSaglik={setSaglik} hayvanlar={hayvanlar} />}
+                {sekme === "dogum" && <DogumKayitlari dogumlar={dogumlar} setDogumlar={setDogumlar} hayvanlar={hayvanlar} />}
+                {sekme === "rasyon" && <RasyonYonetimi rasyonlar={rasyonlar} setRasyonlar={setRasyonlar} />}
               </div>
             </div>
           );
         }
 
-        // React DOM 18 ile Root elementini render etme alanı
         ReactDOM.createRoot(document.getElementById('root')).render(<App />);
     </script>
 </body>
 </html>
-                      <thead><tr>{["Küpe No","İsim","Cins","Yaş","Cinsiyet","Ağırlık",""].map(h=><th key={h} style={S
