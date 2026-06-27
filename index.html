@@ -1,844 +1,411 @@
-import { useState, useEffect } from "react";
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Çiftlik Yönetimi</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.12/babel.min.js" crossorigin></script>
+    <style>
+        body { margin: 0; padding: 0; background: #F7F3EE; }
+        div::-webkit-scrollbar { height: 4px; }
+        div::-webkit-scrollbar-thumb { background: #E2D9CD; border-radius: 10px; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
 
-const APP_ADI = "Çiftlik Yönetimi";
+    <script type="text/babel">
+        // Global React importlarını tanımlıyoruz (Kodun orijinal yapısını korumak için)
+        const { useState, useEffect } = React;
 
-const STORAGE_KEYS = {
-  hayvanlar: "koyun_hayvanlar",
-  islemler: "koyun_islemler",
-  rasyonlar: "koyun_rasyonlar",
-  saglik: "koyun_saglik",
-  dogumlar: "koyun_dogumlar",
-  dollenme: "koyun_dollenme",
-  agirlikGecmisi: "koyun_agirlik",
-};
+        const APP_ADI = "Çiftlik Yönetimi";
 
-const loadData = async (key) => {
-  try { const r = await window.storage.get(key); return r ? JSON.parse(r.value) : []; } catch { return []; }
-};
-const saveData = async (key, data) => {
-  try { await window.storage.set(key, JSON.stringify(data)); } catch (e) { console.error(e); }
-};
+        const STORAGE_KEYS = {
+          hayvanlar: "koyun_hayvanlar",
+          islemler: "koyun_islemler",
+          rasyonlar: "koyun_rasyonlar",
+          saglik: "koyun_saglik",
+          dogumlar: "koyun_dogumlar",
+          dollenme: "koyun_dollenme",
+          agirlikGecmisi: "koyun_agirlik",
+        };
 
-const bugun = new Date().toISOString().split("T")[0];
-const tahminiDogumHesapla = (d) => { if (!d) return ""; const dt = new Date(d); dt.setDate(dt.getDate()+150); return dt.toISOString().split("T")[0]; };
-const kalanGun = (t) => { if (!t) return null; return Math.ceil((new Date(t).setHours(0,0,0,0) - new Date().setHours(0,0,0,0))/(1000*60*60*24)); };
+        const loadData = async (key) => {
+          try { const r = await window.storage.get(key); return r ? JSON.parse(r.value) : []; } catch { return []; }
+        };
+        const saveData = async (key, data) => {
+          try { await window.storage.set(key, JSON.stringify(data)); } catch (e) { console.error(e); }
+        };
 
-const R = {
-  zemin:"#F7F3EE", kart:"#FFFFFF", birincil:"#5C7A4E", ikincil:"#8FAF7E",
-  vurgu:"#C87137", metin:"#2C2416", metinAcik:"#7A6B55", sinir:"#E2D9CD",
-  tehlike:"#C0392B", uyari:"#E67E22",
-};
+        const bugun = new Date().toISOString().split("T")[0];
+        const tahminiDogumHesapla = (d) => { if (!d) return ""; const dt = new Date(d); dt.setDate(dt.getDate()+150); return dt.toISOString().split("T")[0]; };
+        const kalanGun = (t) => { if (!t) return null; return Math.ceil((new Date(t).setHours(0,0,0,0) - new Date().setHours(0,0,0,0))/(1000*60*60*24)); };
 
-const S = {
-  app:{minHeight:"100vh",background:R.zemin,fontFamily:"'Georgia',serif",color:R.metin},
-  header:{background:R.birincil,color:"#fff",padding:"16px 24px",display:"flex",alignItems:"center",gap:12,boxShadow:"0 2px 8px rgba(0,0,0,0.15)"},
-  nav:{background:"#fff",borderBottom:`1px solid ${R.sinir}`,display:"flex",overflowX:"auto",padding:"0 16px"},
-  navBtn:(a)=>({padding:"12px 14px",border:"none",background:"none",cursor:"pointer",fontFamily:"inherit",fontSize:13,fontWeight:a?"700":"400",color:a?R.birincil:R.metinAcik,borderBottom:a?`3px solid ${R.birincil}`:"3px solid transparent",whiteSpace:"nowrap"}),
-  content:{padding:"20px 16px",maxWidth:900,margin:"0 auto"},
-  card:{background:R.kart,borderRadius:10,border:`1px solid ${R.sinir}`,padding:20,marginBottom:16,boxShadow:"0 1px 4px rgba(0,0,0,0.06)"},
-  row:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16},
-  h2:{margin:0,fontSize:18},
-  btnP:{background:R.birincil,color:"#fff",border:"none",borderRadius:7,padding:"9px 18px",cursor:"pointer",fontFamily:"inherit",fontSize:14,fontWeight:"600"},
-  btnS:{background:R.sinir,color:R.metin,border:"none",borderRadius:7,padding:"7px 14px",cursor:"pointer",fontFamily:"inherit",fontSize:13},
-  btnD:{background:R.tehlike,color:"#fff",border:"none",borderRadius:7,padding:"7px 14px",cursor:"pointer",fontFamily:"inherit",fontSize:13},
-  input:{width:"100%",padding:"9px 12px",border:`1px solid ${R.sinir}`,borderRadius:7,fontFamily:"inherit",fontSize:14,background:R.zemin,color:R.metin,boxSizing:"border-box"},
-  label:{display:"block",fontSize:12,fontWeight:"600",color:R.metinAcik,marginBottom:4,textTransform:"uppercase",letterSpacing:0.5},
-  g2:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12},
-  g3:{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12},
-  table:{width:"100%",borderCollapse:"collapse",fontSize:14},
-  th:{textAlign:"left",padding:"10px 12px",background:R.zemin,borderBottom:`2px solid ${R.sinir}`,fontSize:12,fontWeight:"700",color:R.metinAcik,textTransform:"uppercase",letterSpacing:0.4},
-  td:{padding:"10px 12px",borderBottom:`1px solid ${R.sinir}`,verticalAlign:"middle"},
-  badge:(c)=>({display:"inline-block",padding:"3px 10px",borderRadius:20,fontSize:12,fontWeight:"600",background:c+"22",color:c}),
-  modal:{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000,padding:16},
-  modalBox:{background:"#fff",borderRadius:12,padding:24,width:"100%",maxWidth:560,maxHeight:"90vh",overflowY:"auto",boxShadow:"0 8px 32px rgba(0,0,0,0.18)"},
-  alert:(c)=>({background:c+"18",border:`1px solid ${c}44`,borderRadius:8,padding:"10px 14px",marginBottom:10,display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:14}),
-  sayac:(c)=>({background:c,borderRadius:12,padding:"16px 20px",textAlign:"center",minWidth:80}),
-  sayacRakam:{fontSize:42,fontWeight:"900",color:"#fff",lineHeight:1},
-  sayacEtiket:{fontSize:11,color:"rgba(255,255,255,0.85)",marginTop:4,textTransform:"uppercase",letterSpacing:0.5},
-};
+        const R = {
+          zemin:"#F7F3EE", kart:"#FFFFFF", birincil:"#5C7A4E", ikincil:"#8FAF7E",
+          vurgu:"#C87137", metin:"#2C2416", metinAcik:"#7A6B55", sinir:"#E2D9CD",
+          tehlike:"#C0392B", uyari:"#E67E22",
+        };
 
-function F({label,children}){return <div style={{marginBottom:12}}><label style={S.label}>{label}</label>{children}</div>;}
+        const S = {
+          app:{minHeight:"100vh",background:R.zemin,fontFamily:"'Georgia',serif",color:R.metin},
+          header:{background:R.birincil,color:"#fff",padding:"16px 24px",display:"flex",alignItems:"center",gap:12,boxShadow:"0 2px 8px rgba(0,0,0,0.15)"},
+          nav:{background:"#fff",borderBottom:`1px solid ${R.sinir}`,display:"flex",overflowX:"auto",padding:"0 16px"},
+          navBtn:(a)=>({padding:"12px 14px",border:"none",background:"none",cursor:"pointer",fontFamily:"inherit",fontSize:13,fontWeight:a?"700":"400",color:a?R.birincil:R.metinAcik,borderBottom:a?`3px solid ${R.birincil}`:"3px solid transparent",whiteSpace:"nowrap"}),
+          content:{padding:"20px 16px",maxWidth:900,margin:"0 auto"},
+          card:{background:R.kart,borderRadius:10,border:`1px solid ${R.sinir}`,padding:20,marginBottom:16,boxShadow:"0 1px 4px rgba(0,0,0,0.06)"},
+          row:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16},
+          h2:{margin:0,fontSize:18},
+          btnP:{background:R.birincil,color:"#fff",border:"none",borderRadius:7,padding:"9px 18px",cursor:"pointer",fontFamily:"inherit",fontSize:14,fontWeight:"600"},
+          btnS:{background:R.sinir,color:R.metin,border:"none",borderRadius:7,padding:"7px 14px",cursor:"pointer",fontFamily:"inherit",fontSize:13},
+          btnD:{background:R.tehlike,color:"#fff",border:"none",borderRadius:7,padding:"7px 14px",cursor:"pointer",fontFamily:"inherit",fontSize:13},
+          input:{width:"100%",padding:"9px 12px",border:`1px solid ${R.sinir}`,borderRadius:7,fontFamily:"inherit",fontSize:14,background:R.zemin,color:R.metin,boxSizing:"border-box"},
+          label:{display:"block",fontSize:12,fontWeight:"600",color:R.metinAcik,marginBottom:4,textTransform:"uppercase",letterSpacing:0.5},
+          g2:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12},
+          g3:{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12},
+          table:{width:"100%",borderCollapse:"collapse",fontSize:14},
+          th:{textAlign:"left",padding:"10px 12px",background:R.zemin,borderBottom:`2px solid ${R.sinir}`,fontSize:12,fontWeight:"700",color:R.metinAcik,textTransform:"uppercase",letterSpacing:0.4},
+          td:{padding:"10px 12px",borderBottom:`1px solid ${R.sinir}`,verticalAlign:"middle"},
+          badge:(c)=>({display:"inline-block",padding:"3px 10px",borderRadius:20,fontSize:12,fontWeight:"600",background:c+"22",color:c}),
+          modal:{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000,padding:16},
+          modalBox:{background:"#fff",borderRadius:12,padding:24,width:"100%",maxWidth:560,maxHeight:"90vh",overflowY:"auto",boxShadow:"0 8px 32px rgba(0,0,0,0.18)"},
+          alert:(c)=>({background:c+"18",border:`1px solid ${c}44`,borderRadius:8,padding:"10px 14px",marginBottom:10,display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:14}),
+          sayac:(c)=>({background:c,borderRadius:12,padding:"16px 20px",textAlign:"center",minWidth:80}),
+          sayacRakam:{fontSize:42,fontWeight:"900",color:"#fff",lineHeight:1},
+          sayacEtiket:{fontSize:11,color:"rgba(255,255,255,0.85)",marginTop:4,textTransform:"uppercase",letterSpacing:0.5},
+        };
 
-function Modal({title,onClose,onSave,children}){
-  return(
-    <div style={S.modal} onClick={e=>e.target===e.currentTarget&&onClose()}>
-      <div style={S.modalBox}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
-          <h3 style={{margin:0}}>{title}</h3>
-          <button onClick={onClose} style={{background:"none",border:"none",fontSize:22,cursor:"pointer",color:R.metinAcik}}>×</button>
-        </div>
-        {children}
-        <div style={{display:"flex",gap:10,marginTop:20,justifyContent:"flex-end"}}>
-          <button onClick={onClose} style={S.btnS}>İptal</button>
-          <button onClick={onSave} style={S.btnP}>Kaydet</button>
-        </div>
-      </div>
-    </div>
-  );
-}
+        function F({label,children}){return <div style={{marginBottom:12}}><label style={S.label}>{label}</label>{children}</div>;}
 
-function GunSayaci({tarih,etiket}){
-  const gun=kalanGun(tarih);
-  if(gun===null) return null;
-  const c=gun<0?R.tehlike:gun<=7?R.tehlike:gun<=30?R.uyari:R.birincil;
-  const txt=gun<0?`${Math.abs(gun)} GÜN GEÇTİ`:gun===0?"BUGÜN!":gun===1?"YARIN":"";
-  return(
-    <div style={S.sayac(c)}>
-      {gun>1?<div style={S.sayacRakam}>{gun}</div>:<div style={{...S.sayacRakam,fontSize:26}}>{txt}</div>}
-      {gun>1&&<div style={{fontSize:13,color:"rgba(255,255,255,0.9)",fontWeight:"700"}}>GÜN</div>}
-      <div style={S.sayacEtiket}>{etiket}</div>
-    </div>
-  );
-}
-
-function KalanBadge({tarih}){
-  const gun=kalanGun(tarih);
-  if(gun===null) return <span style={{color:R.metinAcik}}>-</span>;
-  const c=gun<0?R.tehlike:gun<=7?R.tehlike:gun<=30?R.uyari:R.birincil;
-  const txt=gun<0?`${Math.abs(gun)} gün geçti`:gun===0?"Bugün!":gun===1?"Yarın":`${gun} gün kaldı`;
-  return <span style={S.badge(c)}>{txt}</span>;
-}
-
-function exportExcel(hayvanlar,islemler,saglik,dogumlar,dollenme,rasyonlar){
-  const rows=[];
-  rows.push(["=== HAYVAN KAYITLARI ==="]);
-  rows.push(["Küpe No","İsim","Cins","Yaş","Cinsiyet","Ağırlık"]);
-  hayvanlar.forEach(h=>rows.push([h.kupeNo,h.isim,h.cins,h.yas,h.cinsiyet,h.agirlik]));
-  rows.push([]);
-  rows.push(["=== GELİR/GİDER ==="]);
-  rows.push(["Tarih","Tip","Kategori","Tutar","Açıklama"]);
-  islemler.forEach(i=>rows.push([i.tarih,i.tip,i.kategori,i.tutar,i.aciklama]));
-  rows.push([]);
-  rows.push(["=== DÖLLENME ==="]);
-  rows.push(["Küpe No","Döllenme","Tahmini Doğum","Kalan Gün"]);
-  dollenme.forEach(d=>rows.push([d.kupeNo,d.dollenme,d.tahminiDogum,kalanGun(d.tahminiDogum)]));
-  const csv=rows.map(r=>r.map(c=>`"${c??""}`).join(",")).join("\n");
-  const blob=new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8;"});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement("a"); a.href=url; a.download="ciftlik.csv"; a.click();
-}
-
-// ─── ÖZET ─────────────────────────────────────────────────────────────────────
-function Ozet({hayvanlar,islemler,dogumlar,dollenme,rasyonlar,saglik}){
-  const gelir=islemler.filter(i=>i.tip==="Gelir").reduce((t,i)=>t+Number(i.tutar),0);
-  const gider=islemler.filter(i=>i.tip==="Gider").reduce((t,i)=>t+Number(i.tutar),0);
-  const buAy=new Date().toISOString().slice(0,7);
-  const buAyG=islemler.filter(i=>i.tip==="Gelir"&&i.tarih?.startsWith(buAy)).reduce((t,i)=>t+Number(i.tutar),0);
-  const buAyGi=islemler.filter(i=>i.tip==="Gider"&&i.tarih?.startsWith(buAy)).reduce((t,i)=>t+Number(i.tutar),0);
-
-  const aylar=[];
-  for(let i=5;i>=0;i--){
-    const d=new Date(); d.setMonth(d.getMonth()-i);
-    const key=d.toISOString().slice(0,7);
-    const ad=d.toLocaleString("tr-TR",{month:"short"});
-    const g=islemler.filter(x=>x.tip==="Gelir"&&x.tarih?.startsWith(key)).reduce((t,x)=>t+Number(x.tutar),0);
-    const gi=islemler.filter(x=>x.tip==="Gider"&&x.tarih?.startsWith(key)).reduce((t,x)=>t+Number(x.tutar),0);
-    aylar.push({ad,g,gi});
-  }
-  const maxVal=Math.max(...aylar.map(a=>Math.max(a.g,a.gi)),1);
-
-  const yakDogum=dollenme.filter(d=>d.tahminiDogum).map(d=>({...d,kalan:kalanGun(d.tahminiDogum)})).filter(d=>d.kalan!==null&&d.kalan>=0&&d.kalan<=30).sort((a,b)=>a.kalan-b.kalan);
-  const yakRasyon=rasyonlar.filter(r=>r.sonrakiDegisim).map(r=>({...r,kalan:kalanGun(r.sonrakiDegisim)})).filter(r=>r.kalan!==null&&r.kalan>=0&&r.kalan<=14).sort((a,b)=>a.kalan-b.kalan);
-
-  // Aşı hatırlatmaları
-  const yakAsi=saglik.filter(s=>s.tekrarTarihi).map(s=>({...s,kalan:kalanGun(s.tekrarTarihi)})).filter(s=>s.kalan!==null&&s.kalan>=0&&s.kalan<=14).sort((a,b)=>a.kalan-b.kalan);
-
-  const sonAyStr=new Date(new Date().setMonth(new Date().getMonth()-1)).toISOString().split("T")[0];
-  const skor=Math.min(100,Math.max(0,100-saglik.filter(s=>s.tarih>=sonAyStr).length*5+(hayvanlar.length>0?20:0)));
-
-  return(
-    <div>
-      <div style={{...S.card,background:`linear-gradient(135deg,${R.birincil} 0%,#3d5c32 100%)`,color:"#fff"}}>
-        <div style={{fontSize:15,fontWeight:"700",marginBottom:12,opacity:0.9}}>🌿 {APP_ADI}</div>
-        <div style={S.g3}>
-          {[{s:hayvanlar.length,l:"Toplam Hayvan",c:"#fff"},{s:gelir.toLocaleString("tr-TR")+" ₺",l:"Toplam Gelir",c:"#A8D5A2"},{s:gider.toLocaleString("tr-TR")+" ₺",l:"Toplam Gider",c:"#FFAA80"}].map((x,i)=>(
-            <div key={i} style={{textAlign:"center",padding:12}}>
-              <div style={{fontSize:24,fontWeight:"700",color:x.c,margin:"4px 0"}}>{x.s}</div>
-              <div style={{fontSize:12,color:"rgba(255,255,255,0.75)"}}>{x.l}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {yakDogum.length>0&&(
-        <div style={S.card}>
-          <div style={{fontWeight:"700",marginBottom:14,fontSize:15}}>🐣 Yaklaşan Doğumlar</div>
-          <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
-            {yakDogum.map((d,i)=>(
-              <div key={i} style={{display:"flex",alignItems:"center",gap:12,background:R.zemin,borderRadius:10,padding:"12px 16px",flex:1,minWidth:180}}>
-                <GunSayaci tarih={d.tahminiDogum} etiket="DOĞUMA KALAN"/>
-                <div><div style={{fontWeight:"700",fontSize:15}}>{d.kupeNo}</div><div style={{fontSize:12,color:R.metinAcik}}>{d.tahminiDogum}</div></div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {yakAsi.length>0&&(
-        <div style={S.card}>
-          <div style={{fontWeight:"700",marginBottom:14,fontSize:15}}>💉 Yaklaşan Aşı Tekrarları</div>
-          <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
-            {yakAsi.map((s,i)=>(
-              <div key={i} style={{display:"flex",alignItems:"center",gap:12,background:R.zemin,borderRadius:10,padding:"12px 16px",flex:1,minWidth:180}}>
-                <GunSayaci tarih={s.tekrarTarihi} etiket="TEKRARA KALAN"/>
-                <div>
-                  <div style={{fontWeight:"700",fontSize:15}}>{s.kupeNo}</div>
-                  <div style={{fontSize:13,color:R.metinAcik}}>{s.tip}</div>
-                  <div style={{fontSize:12,color:R.metinAcik}}>{s.tekrarTarihi}</div>
+        function Modal({title,onClose,onSave,children}){
+          return(
+            <div style={S.modal} onClick={e=>e.target===e.currentTarget&&onClose()}>
+              <div style={S.modalBox}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+                  <h3 style={{margin:0}}>{title}</h3>
+                  <button onClick={onClose} style={{background:"none",border:"none",fontSize:22,cursor:"pointer",color:R.metinAcik}}>×</button>
+                </div>
+                {children}
+                <div style={{display:"flex",gap:10,marginTop:20,justifyContent:"flex-end"}}>
+                  <button onClick={onClose} style={S.btnS}>İptal</button>
+                  <button onClick={onSave} style={S.btnP}>Kaydet</button>
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {yakRasyon.length>0&&(
-        <div style={S.card}>
-          <div style={{fontWeight:"700",marginBottom:14,fontSize:15}}>🌾 Rasyon Değişim Hatırlatması</div>
-          <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
-            {yakRasyon.map((r,i)=>(
-              <div key={i} style={{display:"flex",alignItems:"center",gap:12,background:R.zemin,borderRadius:10,padding:"12px 16px",flex:1,minWidth:180}}>
-                <GunSayaci tarih={r.sonrakiDegisim} etiket="DEĞİŞİME KALAN"/>
-                <div><div style={{fontWeight:"700",fontSize:15}}>{r.isim}</div><div style={{fontSize:12,color:R.metinAcik}}>{r.hayvanGrubu}</div></div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <div style={S.card}>
-        <div style={{fontWeight:"700",marginBottom:16,fontSize:15}}>📊 Son 6 Ay Gelir/Gider</div>
-        <div style={{display:"flex",alignItems:"flex-end",gap:8,height:120}}>
-          {aylar.map((a,i)=>(
-            <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
-              <div style={{width:"100%",display:"flex",gap:2,alignItems:"flex-end",height:90}}>
-                <div style={{flex:1,background:R.birincil,borderRadius:"3px 3px 0 0",height:`${(a.g/maxVal)*90}px`,minHeight:a.g>0?3:0}}/>
-                <div style={{flex:1,background:R.vurgu,borderRadius:"3px 3px 0 0",height:`${(a.gi/maxVal)*90}px`,minHeight:a.gi>0?3:0}}/>
-              </div>
-              <div style={{fontSize:11,color:R.metinAcik}}>{a.ad}</div>
             </div>
-          ))}
-        </div>
-        <div style={{display:"flex",gap:16,marginTop:8,fontSize:12}}>
-          <span><span style={{display:"inline-block",width:10,height:10,background:R.birincil,borderRadius:2,marginRight:4}}/>Gelir</span>
-          <span><span style={{display:"inline-block",width:10,height:10,background:R.vurgu,borderRadius:2,marginRight:4}}/>Gider</span>
-        </div>
-      </div>
+          );
+        }
 
-      <div style={S.g2}>
-        <div style={S.card}>
-          <div style={{fontSize:13,fontWeight:"700",color:R.metinAcik,marginBottom:12,textTransform:"uppercase"}}>Bu Ay</div>
-          {[["Gelir",buAyG,R.birincil],["Gider",buAyGi,R.vurgu]].map(([l,v,c])=>(
-            <div key={l} style={{display:"flex",justifyContent:"space-between",marginBottom:8}}>
-              <span style={{color:c}}>● {l}</span><strong>{v.toLocaleString("tr-TR")} ₺</strong>
+        function GunSayaci({tarih,etiket}){
+          const gun=kalanGun(tarih);
+          if(gun===null) return null;
+          const c=gun<0?R.tehlike:gun<=7?R.tehlike:gun<=30?R.uyari:R.birincil;
+          const txt=gun<0?`${Math.abs(gun)} GÜN GEÇTİ`:gun===0?"BUGÜN!":gun===1?"YARIN":"";
+          return(
+            <div style={S.sayac(c)}>
+              {gun>1?<div style={S.sayacRakam}>{gun}</div>:<div style={{...S.sayacRakam,fontSize:26}}>{txt}</div>}
+              {gun>1&&<div style={{fontSize:13,color:"rgba(255,255,255,0.9)",fontWeight:"700"}}>GÜN</div>}
+              <div style={S.sayacEtiket}>{etiket}</div>
             </div>
-          ))}
-          <div style={{borderTop:`1px solid ${R.sinir}`,paddingTop:8,display:"flex",justifyContent:"space-between"}}>
-            <strong>Net Kâr</strong>
-            <strong style={{color:(buAyG-buAyGi)>=0?R.birincil:R.tehlike}}>{(buAyG-buAyGi).toLocaleString("tr-TR")} ₺</strong>
-          </div>
-        </div>
-        <div style={S.card}>
-          <div style={{fontSize:13,fontWeight:"700",color:R.metinAcik,marginBottom:12,textTransform:"uppercase"}}>Sürü</div>
-          {[["🐑 Dişi",hayvanlar.filter(h=>h.cinsiyet==="Dişi").length],["🐏 Erkek",hayvanlar.filter(h=>h.cinsiyet==="Erkek").length],["🔴 Gebe",dollenme.filter(d=>d.tahminiDogum&&kalanGun(d.tahminiDogum)>=0).length],["🐣 Toplam Yavru",dogumlar.reduce((t,d)=>t+Number(d.yavrular||0),0)]].map(([l,v])=>(
-            <div key={l} style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
-              <span style={{fontSize:13}}>{l}</span><strong>{v}</strong>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
+          );
+        }
 
-// ─── HAYVAN ───────────────────────────────────────────────────────────────────
-function HayvanKayitlari({hayvanlar,setHayvanlar,agirlikGecmisi,setAgirlikGecmisi}){
-  const bos={kupeNo:"",isim:"",cins:"",yas:"",cinsiyet:"Dişi",agirlik:"",notlar:""};
-  const [modal,setModal]=useState(false);
-  const [modalAg,setModalAg]=useState(false);
-  const [secili,setSecili]=useState(null);
-  const [form,setForm]=useState(bos);
-  const [duzenle,setDuzenle]=useState(null);
-  const [arama,setArama]=useState("");
-  const [formAg,setFormAg]=useState({tarih:bugun,agirlik:""});
+        function KalanBadge({tarih}){
+          const gun=kalanGun(tarih);
+          if(gun===null) return <span style={{color:R.metinAcik}}>-</span>;
+          const c=gun<0?R.tehlike:gun<=7?R.tehlike:gun<=30?R.uyari:R.birincil;
+          const txt=gun<0?`${Math.abs(gun)} gün geçti`:gun===0?"Bugün!":gun===1?"Yarın":`${gun} gün kaldı`;
+          return <span style={S.badge(c)}>{txt}</span>;
+        }
 
-  const kaydet=async()=>{
-    if(!form.kupeNo)return alert("Küpe No zorunludur.");
-    const yeni=duzenle!==null?hayvanlar.map((h,i)=>i===duzenle?form:h):[...hayvanlar,{...form,id:Date.now()}];
-    setHayvanlar(yeni);await saveData(STORAGE_KEYS.hayvanlar,yeni);
-    setModal(false);setForm(bos);setDuzenle(null);
-  };
+        function exportExcel(hayvanlar,islemler,saglik,dogumlar,dollenme,rasyonlar){
+          const rows=[];
+          rows.push(["=== HAYVAN KAYITLARI ==="]);
+          rows.push(["Küpe No","İsim","Cins","Yaş","Cinsiyet","Ağırlık"]);
+          hayvanlar.forEach(h=>rows.push([h.kupeNo,h.isim,h.cins,h.yas,h.cinsiyet,h.agirlik]));
+          rows.push([]);
+          rows.push(["=== GELİR/GİDER ==="]);
+          rows.push(["Tarih","Tip","Kategori","Tutar","Açıklama"]);
+          islemler.forEach(i=>rows.push([i.tarih,i.tip,i.kategori,i.tutar,i.aciklama]));
+          rows.push([]);
+          rows.push(["=== DÖLLENME ==="]);
+          rows.push(["Küpe No","Döllenme","Tahmini Doğum","Kalan Gün"]);
+          dollenme.forEach(d=>rows.push([d.kupeNo,d.dollenme,d.tahminiDogum,kalanGun(d.tahminiDogum)]));
+          const csv=rows.map(r=>r.map(c=>`"${c??""}"`).join(",")).join("\n");
+          const blob=new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8;"});
+          const url=URL.createObjectURL(blob);
+          const a=document.createElement("a"); a.href=url; a.download="ciftlik.csv"; a.click();
+        }
 
-  const sil=async(i)=>{
-    if(!confirm("Silmek istiyor musunuz?"))return;
-    const yeni=hayvanlar.filter((_,idx)=>idx!==i);
-    setHayvanlar(yeni);await saveData(STORAGE_KEYS.hayvanlar,yeni);
-  };
+        // ─── ÖZET ─────────────────────────────────────────────────────────────────────
+        function Ozet({hayvanlar,islemler,dogumlar,dollenme,rasyonlar,saglik}){
+          const gelir=islemler.filter(i=>i.tip==="Gelir").reduce((t,i)=>t+Number(i.tutar),0);
+          const gider=islemler.filter(i=>i.tip==="Gider").reduce((t,i)=>t+Number(i.tutar),0);
+          const buAy=new Date().toISOString().slice(0,7);
+          const buAyG=islemler.filter(i=>i.tip==="Gelir"&&i.tarih?.startsWith(buAy)).reduce((t,i)=>t+Number(i.tutar),0);
+          const buAyGi=islemler.filter(i=>i.tip==="Gider"&&i.tarih?.startsWith(buAy)).reduce((t,i)=>t+Number(i.tutar),0);
 
-  const kaydetAg=async()=>{
-    if(!formAg.agirlik)return alert("Ağırlık giriniz.");
-    const yeni=[...agirlikGecmisi,{...formAg,kupeNo:secili.kupeNo,id:Date.now()}];
-    setAgirlikGecmisi(yeni);await saveData(STORAGE_KEYS.agirlikGecmisi,yeni);
-    setModalAg(false);setFormAg({tarih:bugun,agirlik:""});
-  };
+          const aylar=[];
+          for(let i=5;i>=0;i--){
+            const d=new Date(); d.setMonth(d.getMonth()-i);
+            const key=d.toISOString().slice(0,7);
+            const ad=d.toLocaleString("tr-TR",{month:"short"});
+            const g=islemler.filter(x=>x.tip==="Gelir"&&x.tarih?.startsWith(key)).reduce((t,x)=>t+Number(x.tutar),0);
+            const gi=islemler.filter(x=>x.tip==="Gider"&&x.tarih?.startsWith(key)).reduce((t,x)=>t+Number(x.tutar),0);
+            aylar.push({ad,g,gi});
+          }
+          const maxVal=Math.max(...aylar.map(a=>Math.max(a.g,a.gi)),1);
 
-  const filtreli=hayvanlar.filter(h=>h.kupeNo?.includes(arama)||h.isim?.toLowerCase().includes(arama.toLowerCase())||h.cins?.toLowerCase().includes(arama.toLowerCase()));
+          const yakDogum=dollenme.filter(d=>d.tahminiDogum).map(d=>({...d,kalan:kalanGun(d.tahminiDogum)})).filter(d=>d.kalan!==null&&d.kalan>=0&&d.kalan<=30).sort((a,b)=>a.kalan-b.kalan);
+          const yakRasyon=rasyonlar.filter(r=>r.sonrakiDegisim).map(r=>({...r,kalan:kalanGun(r.sonrakiDegisim)})).filter(r=>r.kalan!==null&&r.kalan>=0&&r.kalan<=14).sort((a,b)=>a.kalan-b.kalan);
 
-  return(
-    <div>
-      <div style={S.card}>
-        <div style={S.row}><h2 style={S.h2}>🐑 Hayvan Kayıtları</h2><button style={S.btnP} onClick={()=>{setForm(bos);setDuzenle(null);setModal(true);}}>+ Hayvan Ekle</button></div>
-        <input style={{...S.input,marginBottom:16}} placeholder="Ara..." value={arama} onChange={e=>setArama(e.target.value)}/>
-        {filtreli.length===0?<div style={{color:R.metinAcik,textAlign:"center",padding:32}}>Kayıt yok.</div>:(
-          <div style={{overflowX:"auto"}}>
-            <table style={S.table}>
-              <thead><tr>{["Küpe No","İsim","Cins","Yaş","Cinsiyet","Ağırlık",""].map(h=><th key={h} style={S.th}>{h}</th>)}</tr></thead>
-              <tbody>{filtreli.map((h,i)=>{
-                const ag=agirlikGecmisi.filter(a=>a.kupeNo===h.kupeNo).sort((a,b)=>b.tarih.localeCompare(a.tarih));
-                return(
-                  <tr key={i}>
-                    <td style={S.td}><strong>{h.kupeNo}</strong></td>
-                    <td style={S.td}>{h.isim||"-"}</td>
-                    <td style={S.td}>{h.cins||"-"}</td>
-                    <td style={S.td}>{h.yas?`${h.yas} yaş`:"-"}</td>
-                    <td style={S.td}><span style={S.badge(h.cinsiyet==="Dişi"?R.birincil:R.vurgu)}>{h.cinsiyet}</span></td>
-                    <td style={S.td}>{ag[0]?`${ag[0].agirlik} kg`:h.agirlik?`${h.agirlik} kg`:"-"}</td>
-                    <td style={S.td}><div style={{display:"flex",gap:4}}>
-                      <button style={{...S.btnS,fontSize:12,padding:"5px 10px"}} onClick={()=>{setSecili(h);setModalAg(true);}}>⚖️</button>
-                      <button style={{...S.btnS,fontSize:12,padding:"5px 10px"}} onClick={()=>{setForm(h);setDuzenle(hayvanlar.indexOf(h));setModal(true);}}>✏️</button>
-                      <button style={{...S.btnD,fontSize:12,padding:"5px 10px"}} onClick={()=>sil(hayvanlar.indexOf(h))}>🗑</button>
-                    </div></td>
-                  </tr>
-                );
-              })}</tbody>
-            </table>
-          </div>
-        )}
-      </div>
-      {modal&&(<Modal title={duzenle!==null?"Hayvanı Düzenle":"Yeni Hayvan"} onClose={()=>{setModal(false);setDuzenle(null);}} onSave={kaydet}>
-        <div style={S.g2}>
-          <F label="Küpe No *"><input style={S.input} value={form.kupeNo} onChange={e=>setForm({...form,kupeNo:e.target.value})}/></F>
-          <F label="İsim"><input style={S.input} value={form.isim} onChange={e=>setForm({...form,isim:e.target.value})}/></F>
-          <F label="Cins"><input style={S.input} value={form.cins} onChange={e=>setForm({...form,cins:e.target.value})} placeholder="Merinos, Akkaraman..."/></F>
-          <F label="Yaş"><input style={S.input} type="number" value={form.yas} onChange={e=>setForm({...form,yas:e.target.value})}/></F>
-          <F label="Cinsiyet"><select style={S.input} value={form.cinsiyet} onChange={e=>setForm({...form,cinsiyet:e.target.value})}><option>Dişi</option><option>Erkek</option></select></F>
-          <F label="Ağırlık (kg)"><input style={S.input} type="number" value={form.agirlik} onChange={e=>setForm({...form,agirlik:e.target.value})}/></F>
-        </div>
-        <F label="Notlar"><textarea style={{...S.input,minHeight:70,resize:"vertical"}} value={form.notlar} onChange={e=>setForm({...form,notlar:e.target.value})}/></F>
-      </Modal>)}
-      {modalAg&&secili&&(<Modal title={`⚖️ ${secili.kupeNo} Ağırlık Takibi`} onClose={()=>setModalAg(false)} onSave={kaydetAg}>
-        <div style={S.g2}>
-          <F label="Tarih"><input style={S.input} type="date" value={formAg.tarih} onChange={e=>setFormAg({...formAg,tarih:e.target.value})}/></F>
-          <F label="Ağırlık (kg) *"><input style={S.input} type="number" value={formAg.agirlik} onChange={e=>setFormAg({...formAg,agirlik:e.target.value})}/></F>
-        </div>
-        {agirlikGecmisi.filter(a=>a.kupeNo===secili.kupeNo).length>0&&(
-          <div>
-            <div style={{fontSize:12,fontWeight:"700",color:R.metinAcik,marginBottom:8,textTransform:"uppercase"}}>Geçmiş</div>
-            {agirlikGecmisi.filter(a=>a.kupeNo===secili.kupeNo).sort((a,b)=>b.tarih.localeCompare(a.tarih)).slice(0,5).map((a,i)=>(
-              <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:`1px solid ${R.sinir}`,fontSize:14}}>
-                <span>{a.tarih}</span><strong>{a.agirlik} kg</strong>
-              </div>
-            ))}
-          </div>
-        )}
-      </Modal>)}
-    </div>
-  );
-}
+          // Aşı hatırlatmaları
+          const yakAsi=saglik.filter(s=>s.tekrarTarihi).map(s=>({...s,kalan:kalanGun(s.tekrarTarihi)})).filter(s=>s.kalan!==null&&s.kalan>=0&&s.kalan<=14).sort((a,b)=>a.kalan-b.kalan);
 
-// ─── GELİR GİDER ─────────────────────────────────────────────────────────────
-function GelirGider({islemler,setIslemler}){
-  const bos={tarih:bugun,tip:"Gelir",kategori:"",tutar:"",aciklama:""};
-  const [modal,setModal]=useState(false);
-  const [form,setForm]=useState(bos);
-  const gelir=islemler.filter(i=>i.tip==="Gelir").reduce((t,i)=>t+Number(i.tutar),0);
-  const gider=islemler.filter(i=>i.tip==="Gider").reduce((t,i)=>t+Number(i.tutar),0);
+          const sonAyStr=new Date(new Date().setMonth(new Date().getMonth()-1)).toISOString().split("T")[0];
+          const skor=Math.min(100,Math.max(0,100-saglik.filter(s=>s.tarih>=sonAyStr).length*5+(hayvanlar.length>0?20:0)));
 
-  const kaydet=async()=>{
-    if(!form.tutar||!form.kategori)return alert("Tutar ve kategori zorunludur.");
-    const yeni=[...islemler,{...form,id:Date.now()}];
-    setIslemler(yeni);await saveData(STORAGE_KEYS.islemler,yeni);
-    setModal(false);setForm(bos);
-  };
-  const sil=async(i)=>{const y=islemler.filter((_,idx)=>idx!==i);setIslemler(y);await saveData(STORAGE_KEYS.islemler,y);};
-  const gKat=["Süt Satışı","Hayvan Satışı","Yün Satışı","Et Satışı","Diğer"];
-  const giKat=["Yem","Veteriner","İlaç","Bakım","Ekipman","İşçilik","Diğer"];
-
-  return(
-    <div>
-      <div style={S.g3}>
-        {[{l:"Toplam Gelir",v:gelir,c:R.birincil,i:"💰"},{l:"Toplam Gider",v:gider,c:R.vurgu,i:"📤"},{l:"Net Kâr",v:gelir-gider,c:(gelir-gider)>=0?R.birincil:R.tehlike,i:"📊"}].map((x,i)=>(
-          <div key={i} style={{...S.card,textAlign:"center"}}>
-            <div style={{fontSize:22}}>{x.i}</div>
-            <div style={{fontSize:20,fontWeight:"700",color:x.c,margin:"6px 0"}}>{x.v.toLocaleString("tr-TR")} ₺</div>
-            <div style={{fontSize:12,color:R.metinAcik}}>{x.l}</div>
-          </div>
-        ))}
-      </div>
-      <div style={S.card}>
-        <div style={S.row}><h2 style={S.h2}>💳 Kayıtlar</h2><button style={S.btnP} onClick={()=>setModal(true)}>+ Ekle</button></div>
-        {islemler.length===0?<div style={{color:R.metinAcik,textAlign:"center",padding:32}}>Kayıt yok.</div>:(
-          <div style={{overflowX:"auto"}}>
-            <table style={S.table}>
-              <thead><tr>{["Tarih","Tip","Kategori","Tutar","Açıklama",""].map(h=><th key={h} style={S.th}>{h}</th>)}</tr></thead>
-              <tbody>{[...islemler].reverse().map((x,i)=>(
-                <tr key={i}>
-                  <td style={S.td}>{x.tarih}</td>
-                  <td style={S.td}><span style={S.badge(x.tip==="Gelir"?R.birincil:R.vurgu)}>{x.tip}</span></td>
-                  <td style={S.td}>{x.kategori}</td>
-                  <td style={S.td}><strong style={{color:x.tip==="Gelir"?R.birincil:R.vurgu}}>{Number(x.tutar).toLocaleString("tr-TR")} ₺</strong></td>
-                  <td style={S.td}>{x.aciklama||"-"}</td>
-                  <td style={S.td}><button style={S.btnD} onClick={()=>sil(islemler.indexOf(x))}>Sil</button></td>
-                </tr>
-              ))}</tbody>
-            </table>
-          </div>
-        )}
-      </div>
-      {modal&&(<Modal title="Gelir / Gider Ekle" onClose={()=>{setModal(false);setForm(bos);}} onSave={kaydet}>
-        <div style={S.g2}>
-          <F label="Tip"><select style={S.input} value={form.tip} onChange={e=>setForm({...form,tip:e.target.value,kategori:""})}><option>Gelir</option><option>Gider</option></select></F>
-          <F label="Tarih"><input style={S.input} type="date" value={form.tarih} onChange={e=>setForm({...form,tarih:e.target.value})}/></F>
-          <F label="Kategori *"><select style={S.input} value={form.kategori} onChange={e=>setForm({...form,kategori:e.target.value})}><option value="">Seçin...</option>{(form.tip==="Gelir"?gKat:giKat).map(k=><option key={k}>{k}</option>)}</select></F>
-          <F label="Tutar (₺) *"><input style={S.input} type="number" value={form.tutar} onChange={e=>setForm({...form,tutar:e.target.value})}/></F>
-        </div>
-        <F label="Açıklama"><input style={S.input} value={form.aciklama} onChange={e=>setForm({...form,aciklama:e.target.value})}/></F>
-      </Modal>)}
-    </div>
-  );
-}
-
-// ─── BESLEME RASYONLARI (malzeme listeli) ────────────────────────────────────
-function BeslemeRasyonlari({rasyonlar,setRasyonlar}){
-  const bosForm={isim:"",hayvanGrubu:"Tüm Sürü",gunluk:true,degisimTarihi:bugun,sonrakiDegisim:"",malzemeler:[{ad:"",kg:""}]};
-  const [modal,setModal]=useState(false);
-  const [form,setForm]=useState(bosForm);
-  const [duzenle,setDuzenle]=useState(null);
-
-  const malzemeEkle=()=>setForm({...form,malzemeler:[...form.malzemeler,{ad:"",kg:""}]});
-  const malzemeSil=(i)=>setForm({...form,malzemeler:form.malzemeler.filter((_,idx)=>idx!==i)});
-  const malzemeGuncelle=(i,alan,val)=>{
-    const yeni=[...form.malzemeler];
-    yeni[i]={...yeni[i],[alan]:val};
-    setForm({...form,malzemeler:yeni});
-  };
-
-  const toplamKg=(malzemeler)=>malzemeler.reduce((t,m)=>t+(Number(m.kg)||0),0);
-
-  const kaydet=async()=>{
-    if(!form.isim)return alert("Rasyon adı zorunludur.");
-    if(form.malzemeler.some(m=>!m.ad))return alert("Tüm malzeme adlarını doldurun.");
-    const yeni=duzenle!==null?rasyonlar.map((r,i)=>i===duzenle?form:r):[...rasyonlar,{...form,id:Date.now()}];
-    setRasyonlar(yeni);await saveData(STORAGE_KEYS.rasyonlar,yeni);
-    setModal(false);setForm(bosForm);setDuzenle(null);
-  };
-  const sil=async(i)=>{const y=rasyonlar.filter((_,idx)=>idx!==i);setRasyonlar(y);await saveData(STORAGE_KEYS.rasyonlar,y);};
-
-  return(
-    <div>
-      <div style={S.card}>
-        <div style={S.row}><h2 style={S.h2}>🌾 Besleme Rasyonları</h2><button style={S.btnP} onClick={()=>{setForm(bosForm);setDuzenle(null);setModal(true);}}>+ Rasyon Ekle</button></div>
-        {rasyonlar.length===0?<div style={{color:R.metinAcik,textAlign:"center",padding:32}}>Rasyon eklenmedi.</div>:(
-          <div style={{display:"flex",flexDirection:"column",gap:12}}>
-            {rasyonlar.map((r,i)=>(
-              <div key={i} style={{border:`1px solid ${R.sinir}`,borderRadius:10,padding:16,background:R.zemin}}>
-                <div style={{display:"flex",gap:16,alignItems:"flex-start",flexWrap:"wrap"}}>
-                  {r.sonrakiDegisim&&<GunSayaci tarih={r.sonrakiDegisim} etiket="DEĞİŞİME KALAN"/>}
-                  <div style={{flex:1,minWidth:160}}>
-                    <div style={{fontWeight:"700",fontSize:16,marginBottom:4}}>{r.isim}</div>
-                    <div style={{fontSize:13,color:R.metinAcik,marginBottom:8}}>{r.hayvanGrubu} • {r.gunluk?"Günlük":"Öğün başına"}</div>
-                    {/* Malzeme listesi */}
-                    <div style={{background:"#fff",borderRadius:8,padding:12,border:`1px solid ${R.sinir}`}}>
-                      <div style={{fontSize:12,fontWeight:"700",color:R.metinAcik,marginBottom:8,textTransform:"uppercase"}}>Malzemeler</div>
-                      {(r.malzemeler||[]).map((m,mi)=>(
-                        <div key={mi} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:`1px solid ${R.sinir}`,fontSize:14}}>
-                          <span>{m.ad}</span>
-                          <strong>{m.kg} kg</strong>
-                        </div>
-                      ))}
-                      <div style={{display:"flex",justifyContent:"space-between",padding:"8px 0 0",fontSize:14,fontWeight:"700",color:R.birincil}}>
-                        <span>Toplam</span>
-                        <span>{toplamKg(r.malzemeler||[])} kg</span>
-                      </div>
+          return(
+            <div>
+              <div style={{...S.card,background:`linear-gradient(135deg,${R.birincil} 0%,#3d5c32 100%)`,color:"#fff"}}>
+                <div style={{fontSize:15,fontWeight:"700",marginBottom:12,opacity:0.9}}>🌿 {APP_ADI}</div>
+                <div style={S.g3}>
+                  {[{s:hayvanlar.length,l:"Toplam Hayvan",c:"#fff"},{s:gelir.toLocaleString("tr-TR")+" ₺",l:"Toplam Gelir",c:"#A8D5A2"},{s:gider.toLocaleString("tr-TR")+" ₺",l:"Toplam Gider",c:"#FFAA80"}].map((x,i)=>(
+                    <div key={i} style={{textAlign:"center",padding:12}}>
+                      <div style={{fontSize:24,fontWeight:"700",color:x.c,margin:"4px 0"}}>{x.s}</div>
+                      <div style={{fontSize:12,color:"rgba(255,255,255,0.75)"}}>{x.l}</div>
                     </div>
-                    {r.degisimTarihi&&<div style={{fontSize:12,color:R.metinAcik,marginTop:8}}>Başlangıç: {r.degisimTarihi}</div>}
-                    {r.sonrakiDegisim&&<div style={{fontSize:12,color:R.metinAcik}}>Sonraki değişim: {r.sonrakiDegisim}</div>}
+                  ))}
+                </div>
+              </div>
+
+              {yakDogum.length>0&&(
+                <div style={S.card}>
+                  <div style={{fontWeight:"700",marginBottom:14,fontSize:15}}>🐣 Yaklaşan Doğumlar</div>
+                  <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
+                    {yakDogum.map((d,i)=>(
+                      <div key={i} style={{display:"flex",alignItems:"center",gap:12,background:R.zemin,borderRadius:10,padding:"12px 16px",flex:1,minWidth:180}}>
+                        <GunSayaci tarih={d.tahminiDogum} etiket="DOĞUMA KALAN"/>
+                        <div><div style={{fontWeight:"700",fontSize:15}}>{d.kupeNo}</div><div style={{fontSize:12,color:R.metinAcik}}>{d.tahminiDogum}</div></div>
+                      </div>
+                    ))}
                   </div>
                 </div>
-                <div style={{display:"flex",gap:6,marginTop:12}}>
-                  <button style={S.btnS} onClick={()=>{setForm(r);setDuzenle(i);setModal(true);}}>Düzenle</button>
-                  <button style={S.btnD} onClick={()=>sil(i)}>Sil</button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+              )}
 
-      {modal&&(
-        <Modal title={duzenle!==null?"Rasyonu Düzenle":"Yeni Rasyon"} onClose={()=>{setModal(false);setDuzenle(null);}} onSave={kaydet}>
-          <F label="Rasyon Adı *"><input style={S.input} value={form.isim} onChange={e=>setForm({...form,isim:e.target.value})} placeholder="Günlük süt koyunu rasyonu"/></F>
-          <F label="Hayvan Grubu"><select style={S.input} value={form.hayvanGrubu} onChange={e=>setForm({...form,hayvanGrubu:e.target.value})}>
-            {["Tüm Sürü","Dişi Koyunlar","Erkek Koyunlar","Kuzular","Gebe Koyunlar","Süt Koyunları"].map(g=><option key={g}>{g}</option>)}
-          </select></F>
-          <F label="Sıklık"><select style={S.input} value={form.gunluk?"g":"o"} onChange={e=>setForm({...form,gunluk:e.target.value==="g"})}><option value="g">Günlük</option><option value="o">Öğün başına</option></select></F>
-
-          {/* Malzeme listesi */}
-          <div style={{marginBottom:12}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-              <label style={S.label}>Malzemeler (kg)</label>
-              <button onClick={malzemeEkle} style={{...S.btnS,fontSize:12,padding:"4px 10px"}}>+ Malzeme Ekle</button>
-            </div>
-            {form.malzemeler.map((m,i)=>(
-              <div key={i} style={{display:"flex",gap:8,marginBottom:8,alignItems:"center"}}>
-                <input style={{...S.input,flex:2}} placeholder="Malzeme adı (kuru ot, kepek...)" value={m.ad} onChange={e=>malzemeGuncelle(i,"ad",e.target.value)}/>
-                <input style={{...S.input,flex:1}} type="number" placeholder="kg" value={m.kg} onChange={e=>malzemeGuncelle(i,"kg",e.target.value)}/>
-                {form.malzemeler.length>1&&<button onClick={()=>malzemeSil(i)} style={{...S.btnD,padding:"7px 10px",flexShrink:0}}>×</button>}
-              </div>
-            ))}
-            {form.malzemeler.some(m=>m.kg)&&(
-              <div style={{textAlign:"right",fontSize:14,fontWeight:"700",color:R.birincil,marginTop:4}}>
-                Toplam: {toplamKg(form.malzemeler)} kg
-              </div>
-            )}
-          </div>
-
-          <div style={S.g2}>
-            <F label="Başlangıç Tarihi"><input style={S.input} type="date" value={form.degisimTarihi} onChange={e=>setForm({...form,degisimTarihi:e.target.value})}/></F>
-            <F label="Sonraki Değişim"><input style={S.input} type="date" value={form.sonrakiDegisim} onChange={e=>setForm({...form,sonrakiDegisim:e.target.value})}/></F>
-          </div>
-          {form.sonrakiDegisim&&(
-            <div style={{background:R.birincil+"18",borderRadius:10,padding:12,display:"flex",alignItems:"center",gap:12}}>
-              <GunSayaci tarih={form.sonrakiDegisim} etiket="DEĞİŞİME KALAN"/>
-              <span style={{fontSize:13,color:R.metinAcik}}>sonraki değişime kalan</span>
-            </div>
-          )}
-        </Modal>
-      )}
-    </div>
-  );
-}
-
-// ─── SAĞLIK TAKİBİ (aşı tekrar tarihli) ─────────────────────────────────────
-function SaglikTakibi({saglik,setSaglik,hayvanlar}){
-  const bos={kupeNo:"",tarih:bugun,tip:"Aşı",aciklama:"",veteriner:"",tekrarTarihi:"",tekrarGun:""};
-  const [modal,setModal]=useState(false);
-  const [form,setForm]=useState(bos);
-
-  const tekrarGunHesapla=(tarih,gun)=>{
-    if(!tarih||!gun)return "";
-    const d=new Date(tarih); d.setDate(d.getDate()+Number(gun));
-    return d.toISOString().split("T")[0];
-  };
-
-  const kaydet=async()=>{
-    if(!form.kupeNo)return alert("Küpe No zorunludur.");
-    let tekrar=form.tekrarTarihi;
-    if(!tekrar&&form.tekrarGun&&form.tarih) tekrar=tekrarGunHesapla(form.tarih,form.tekrarGun);
-    const yeni=[...saglik,{...form,tekrarTarihi:tekrar,id:Date.now()}];
-    setSaglik(yeni);await saveData(STORAGE_KEYS.saglik,yeni);
-    setModal(false);setForm(bos);
-  };
-  const sil=async(i)=>{const y=saglik.filter((_,idx)=>idx!==i);setSaglik(y);await saveData(STORAGE_KEYS.saglik,y);};
-
-  return(
-    <div>
-      <div style={S.card}>
-        <div style={S.row}><h2 style={S.h2}>💉 Sağlık Takibi</h2><button style={S.btnP} onClick={()=>setModal(true)}>+ Kayıt Ekle</button></div>
-        {saglik.length===0?<div style={{color:R.metinAcik,textAlign:"center",padding:32}}>Kayıt yok.</div>:(
-          <div style={{display:"flex",flexDirection:"column",gap:10}}>
-            {[...saglik].reverse().map((s,i)=>(
-              <div key={i} style={{border:`1px solid ${R.sinir}`,borderRadius:10,padding:14,background:R.zemin}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:8}}>
-                  <div>
-                    <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:4}}>
-                      <strong style={{fontSize:15}}>{s.kupeNo}</strong>
-                      <span style={S.badge(s.tip==="Aşı"?R.birincil:s.tip==="Tedavi"?R.vurgu:R.metinAcik)}>{s.tip}</span>
-                    </div>
-                    <div style={{fontSize:13,color:R.metinAcik}}>📅 İlk uygulama: {s.tarih}</div>
-                    {s.aciklama&&<div style={{fontSize:13,marginTop:2}}>📝 {s.aciklama}</div>}
-                    {s.veteriner&&<div style={{fontSize:13,color:R.metinAcik}}>👨‍⚕️ {s.veteriner}</div>}
-                    {s.tekrarTarihi&&(
-                      <div style={{marginTop:8,background:"#fff",borderRadius:8,padding:"8px 12px",border:`1px solid ${R.sinir}`,display:"flex",alignItems:"center",gap:12}}>
+              {yakAsi.length>0&&(
+                <div style={S.card}>
+                  <div style={{fontWeight:"700",marginBottom:14,fontSize:15}}>💉 Yaklaşan Aşı Tekrarları</div>
+                  <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
+                    {yakAsi.map((s,i)=>(
+                      <div key={i} style={{display:"flex",alignItems:"center",gap:12,background:R.zemin,borderRadius:10,padding:"12px 16px",flex:1,minWidth:180}}>
                         <GunSayaci tarih={s.tekrarTarihi} etiket="TEKRARA KALAN"/>
                         <div>
-                          <div style={{fontSize:12,fontWeight:"700",color:R.metinAcik}}>TEKRAR TARİHİ</div>
-                          <div style={{fontSize:14,fontWeight:"700"}}>{s.tekrarTarihi}</div>
+                          <div style={{fontWeight:"700",fontSize:15}}>{s.kupeNo}</div>
+                          <div style={{fontSize:13,color:R.metinAcik}}>{s.tip}</div>
+                          <div style={{fontSize:12,color:R.metinAcik}}>{s.tekrarTarihi}</div>
                         </div>
                       </div>
-                    )}
+                    ))}
                   </div>
-                  <button style={S.btnD} onClick={()=>sil(saglik.indexOf(s))}>Sil</button>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+              )}
 
-      {modal&&(
-        <Modal title="Sağlık Kaydı Ekle" onClose={()=>{setModal(false);setForm(bos);}} onSave={kaydet}>
-          <div style={S.g2}>
-            <F label="Küpe No *">
-              {hayvanlar.length>0
-                ?<select style={S.input} value={form.kupeNo} onChange={e=>setForm({...form,kupeNo:e.target.value})}><option value="">Seçin...</option>{hayvanlar.map(h=><option key={h.kupeNo} value={h.kupeNo}>{h.kupeNo}{h.isim?` - ${h.isim}`:""}</option>)}</select>
-                :<input style={S.input} value={form.kupeNo} onChange={e=>setForm({...form,kupeNo:e.target.value})} placeholder="TR123456"/>
-              }
-            </F>
-            <F label="Uygulama Tarihi"><input style={S.input} type="date" value={form.tarih} onChange={e=>setForm({...form,tarih:e.target.value,tekrarTarihi:form.tekrarGun?tekrarGunHesapla(e.target.value,form.tekrarGun):""})} /></F>
-            <F label="İşlem Tipi"><select style={S.input} value={form.tip} onChange={e=>setForm({...form,tip:e.target.value})}>{["Aşı","Tedavi","Kontrol","Tırnak Bakımı","Kırkım","Diğer"].map(t=><option key={t}>{t}</option>)}</select></F>
-            <F label="Veteriner"><input style={S.input} value={form.veteriner} onChange={e=>setForm({...form,veteriner:e.target.value})}/></F>
-          </div>
-          <F label="Açıklama / Notlar"><textarea style={{...S.input,minHeight:60,resize:"vertical"}} value={form.aciklama} onChange={e=>setForm({...form,aciklama:e.target.value})}/></F>
-
-          {/* Tekrar bölümü */}
-          <div style={{background:R.birincil+"12",borderRadius:8,padding:14,border:`1px solid ${R.birincil}33`,marginTop:4}}>
-            <div style={{fontWeight:"700",fontSize:13,marginBottom:10,color:R.birincil}}>🔁 Tekrar / Hatırlatma</div>
-            <div style={S.g2}>
-              <F label="Kaç gün sonra tekrar?">
-                <input style={S.input} type="number" placeholder="Örn: 21" value={form.tekrarGun}
-                  onChange={e=>{
-                    const gun=e.target.value;
-                    const tarih=form.tarih?tekrarGunHesapla(form.tarih,gun):"";
-                    setForm({...form,tekrarGun:gun,tekrarTarihi:tarih});
-                  }}/>
-              </F>
-              <F label="Veya tarih seç">
-                <input style={S.input} type="date" value={form.tekrarTarihi} onChange={e=>setForm({...form,tekrarTarihi:e.target.value,tekrarGun:""})}/>
-              </F>
-            </div>
-            {form.tekrarTarihi&&(
-              <div style={{display:"flex",alignItems:"center",gap:12,marginTop:4,background:"#fff",borderRadius:8,padding:10}}>
-                <GunSayaci tarih={form.tekrarTarihi} etiket="TEKRARA KALAN"/>
-                <div style={{fontSize:13,color:R.metinAcik}}>Tekrar tarihi: <strong>{form.tekrarTarihi}</strong></div>
-              </div>
-            )}
-          </div>
-        </Modal>
-      )}
-    </div>
-  );
-}
-
-// ─── DOĞUM TAKİBİ (baba küpesi, zor/kolay doğum) ────────────────────────────
-function DogumTakibi({dogumlar,setDogumlar,dollenme,setDollenme,hayvanlar}){
-  const bosD={anneKupe:"",babaKupe:"",gebeTarih:"",tarih:bugun,yavrular:1,dogumTipi:"Kolay",notlar:""};
-  const bosDl={kupeNo:"",dollenme:bugun,tahminiDogum:"",notlar:""};
-  const [modalD,setModalD]=useState(false);
-  const [modalDl,setModalDl]=useState(false);
-  const [formD,setFormD]=useState(bosD);
-  const [formDl,setFormDl]=useState(bosDl);
-  const [tab,setTab]=useState("dollenme");
-
-  const kaydetDogum=async()=>{
-    if(!formD.anneKupe)return alert("Anne küpe no zorunludur.");
-    const yeni=[...dogumlar,{...formD,id:Date.now()}];
-    setDogumlar(yeni);await saveData(STORAGE_KEYS.dogumlar,yeni);
-    setModalD(false);setFormD(bosD);
-  };
-
-  const kaydetDollenme=async()=>{
-    if(!formDl.kupeNo)return alert("Küpe no zorunludur.");
-    const tahmin=tahminiDogumHesapla(formDl.dollenme);
-    const yeni=[...dollenme,{...formDl,tahminiDogum:formDl.tahminiDogum||tahmin,id:Date.now()}];
-    setDollenme(yeni);await saveData(STORAGE_KEYS.dollenme,yeni);
-    setModalDl(false);setFormDl(bosDl);
-  };
-
-  const silDogum=async(i)=>{const y=dogumlar.filter((_,idx)=>idx!==i);setDogumlar(y);await saveData(STORAGE_KEYS.dogumlar,y);};
-  const silDollenme=async(i)=>{const y=dollenme.filter((_,idx)=>idx!==i);setDollenme(y);await saveData(STORAGE_KEYS.dollenme,y);};
-  const disiler=hayvanlar.filter(h=>h.cinsiyet==="Dişi");
-  const erkekler=hayvanlar.filter(h=>h.cinsiyet==="Erkek");
-
-  return(
-    <div>
-      {dollenme.filter(d=>d.tahminiDogum&&kalanGun(d.tahminiDogum)>=0).length>0&&(
-        <div style={S.card}>
-          <div style={{fontWeight:"700",marginBottom:14}}>🐣 Doğuma Kalan Günler</div>
-          <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
-            {dollenme.filter(d=>d.tahminiDogum&&kalanGun(d.tahminiDogum)>=0).sort((a,b)=>kalanGun(a.tahminiDogum)-kalanGun(b.tahminiDogum)).map((d,i)=>(
-              <div key={i} style={{display:"flex",alignItems:"center",gap:12,background:R.zemin,borderRadius:10,padding:"12px 16px",flex:1,minWidth:180}}>
-                <GunSayaci tarih={d.tahminiDogum} etiket="DOĞUMA KALAN"/>
-                <div><div style={{fontWeight:"700",fontSize:15}}>{d.kupeNo}</div><div style={{fontSize:12,color:R.metinAcik}}>{d.tahminiDogum}</div></div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <div style={{display:"flex",marginBottom:16,background:"#fff",borderRadius:10,border:`1px solid ${R.sinir}`,overflow:"hidden"}}>
-        {[{id:"dollenme",l:"🔴 Döllenme & Gebelik"},{id:"dogum",l:"🐣 Doğum Kayıtları"}].map(t=>(
-          <button key={t.id} onClick={()=>setTab(t.id)} style={{flex:1,padding:"12px",border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:14,fontWeight:tab===t.id?"700":"400",background:tab===t.id?R.birincil:"transparent",color:tab===t.id?"#fff":R.metinAcik}}>
-            {t.l}
-          </button>
-        ))}
-      </div>
-
-      {tab==="dollenme"&&(
-        <div style={S.card}>
-          <div style={S.row}><h2 style={S.h2}>🔴 Döllenme Kayıtları</h2><button style={S.btnP} onClick={()=>setModalDl(true)}>+ Döllenme Ekle</button></div>
-          {dollenme.length===0?<div style={{color:R.metinAcik,textAlign:"center",padding:32}}>Kayıt yok.</div>:(
-            <div style={{overflowX:"auto"}}>
-              <table style={S.table}>
-                <thead><tr>{["Küpe No","Döllenme","Tahmini Doğum","Kalan Gün","Notlar",""].map(h=><th key={h} style={S.th}>{h}</th>)}</tr></thead>
-                <tbody>{[...dollenme].reverse().map((d,i)=>(
-                  <tr key={i}>
-                    <td style={S.td}><strong>{d.kupeNo}</strong></td>
-                    <td style={S.td}>{d.dollenme}</td>
-                    <td style={S.td}>{d.tahminiDogum||"-"}</td>
-                    <td style={S.td}><KalanBadge tarih={d.tahminiDogum}/></td>
-                    <td style={S.td}>{d.notlar||"-"}</td>
-                    <td style={S.td}><button style={S.btnD} onClick={()=>silDollenme(dollenme.indexOf(d))}>Sil</button></td>
-                  </tr>
-                ))}</tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      )}
-
-      {tab==="dogum"&&(
-        <div style={S.card}>
-          <div style={S.row}><h2 style={S.h2}>🐣 Doğum Kayıtları</h2><button style={S.btnP} onClick={()=>setModalD(true)}>+ Doğum Ekle</button></div>
-          {dogumlar.length===0?<div style={{color:R.metinAcik,textAlign:"center",padding:32}}>Kayıt yok.</div>:(
-            <div style={{display:"flex",flexDirection:"column",gap:10}}>
-              {[...dogumlar].reverse().map((d,i)=>(
-                <div key={i} style={{border:`1px solid ${R.sinir}`,borderRadius:10,padding:14,background:R.zemin}}>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-                    <div>
-                      <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap",marginBottom:6}}>
-                        <span style={{fontSize:15}}>🐑 Anne: <strong>{d.anneKupe}</strong></span>
-                        {d.babaKupe&&<span style={{fontSize:15}}>🐏 Baba: <strong>{d.babaKupe}</strong></span>}
-                        <span style={S.badge(d.dogumTipi==="Kolay"?R.birincil:d.dogumTipi==="Zor"?R.tehlike:R.uyari)}>{d.dogumTipi} Doğum</span>
+              {yakRasyon.length>0&&(
+                <div style={S.card}>
+                  <div style={{fontWeight:"700",marginBottom:14,fontSize:15}}>🌾 Rasyon Değişim Hatırlatması</div>
+                  <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
+                    {yakRasyon.map((r,i)=>(
+                      <div key={i} style={{display:"flex",alignItems:"center",gap:12,background:R.zemin,borderRadius:10,padding:"12px 16px",flex:1,minWidth:180}}>
+                        <GunSayaci tarih={r.sonrakiDegisim} etiket="DEĞİŞİME KALAN"/>
+                        <div><div style={{fontWeight:"700",fontSize:15}}>{r.isim}</div><div style={{fontSize:12,color:R.metinAcik}}>{r.hayvanGrubu}</div></div>
                       </div>
-                      <div style={{fontSize:13,color:R.metinAcik}}>📅 {d.tarih}</div>
-                      {d.gebeTarih&&<div style={{fontSize:13,color:R.metinAcik}}>🔴 Gebe kaldı: {d.gebeTarih}</div>}
-                      <div style={{fontSize:14,marginTop:4}}><span style={S.badge(R.birincil)}>🐑 × {d.yavrular} yavru</span></div>
-                      {d.notlar&&<div style={{fontSize:13,marginTop:4}}>📝 {d.notlar}</div>}
-                    </div>
-                    <button style={S.btnD} onClick={()=>silDogum(dogumlar.indexOf(d))}>Sil</button>
+                    ))}
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
+              )}
 
-      {modalDl&&(
-        <Modal title="Döllenme Kaydı" onClose={()=>setModalDl(false)} onSave={kaydetDollenme}>
-          <F label="Küpe No *">
-            {disiler.length>0
-              ?<select style={S.input} value={formDl.kupeNo} onChange={e=>setFormDl({...formDl,kupeNo:e.target.value})}><option value="">Seçin...</option>{disiler.map(h=><option key={h.kupeNo} value={h.kupeNo}>{h.kupeNo}{h.isim?` - ${h.isim}`:""}</option>)}</select>
-              :<input style={S.input} value={formDl.kupeNo} onChange={e=>setFormDl({...formDl,kupeNo:e.target.value})} placeholder="TR123456"/>
+              <div style={S.card}>
+                <div style={{fontWeight:"700",marginBottom:16,fontSize:15}}>📊 Son 6 Ay Gelir/Gider</div>
+                <div style={{display:"flex",alignItems:"flex-end",gap:8,height:120}}>
+                  {aylar.map((a,i)=>(
+                    <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
+                      <div style={{width:"100%",display:"flex",gap:2,alignItems:"flex-end",height:90}}>
+                        <div style={{flex:1,background:R.birincil,borderRadius:"3px 3px 0 0",height:`${(a.g/maxVal)*90}px`,minHeight:a.g>0?3:0}}/>
+                        <div style={{flex:1,background:R.vurgu,borderRadius:"3px 3px 0 0",height:`${(a.gi/maxVal)*90}px`,minHeight:a.gi>0?3:0}}/>
+                      </div>
+                      <div style={{fontSize:11,color:R.metinAcik}}>{a.ad}</div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{display:"flex",gap:16,marginTop:8,fontSize:12}}>
+                  <span><span style={{display:"inline-block",width:10,height:10,background:R.birincil,borderRadius:2,marginRight:4}}/>Gelir</span>
+                  <span><span style={{display:"inline-block",width:10,height:10,background:R.vurgu,borderRadius:2,marginRight:4}}/>Gider</span>
+                </div>
+              </div>
+
+              <div style={S.g2}>
+                <div style={S.card}>
+                  <div style={{fontSize:13,fontWeight:"700",color:R.metinAcik,marginBottom:12,textTransform:"uppercase"}}>Bu Ay</div>
+                  {[["Gelir",buAyG,R.birincil],["Gider",buAyGi,R.vurgu]].map(([l,v,c])=>(
+                    <div key={l} style={{display:"flex",justifyContent:"space-between",marginBottom:8}}>
+                      <span style={{color:c}}>● {l}</span><strong>{v.toLocaleString("tr-TR")} ₺</strong>
+                    </div>
+                  ))}
+                  <div style={{borderTop:`1px solid ${R.sinir}`,paddingTop:8,display:"flex",justifyContent:"space-between"}}>
+                    <strong>Net Kâr</strong>
+                    <strong style={{color:(buAyG-buAyGi)>=0?R.birincil:R.tehlike}}>{(buAyG-buAyGi).toLocaleString("tr-TR")} ₺</strong>
+                  </div>
+                </div>
+                <div style={S.card}>
+                  <div style={{fontSize:13,fontWeight:"700",color:R.metinAcik,marginBottom:12,textTransform:"uppercase"}}>Sürü</div>
+                  {[["🐑 Dişi",hayvanlar.filter(h=>h.cinsiyet==="Dişi").length],["🐏 Erkek",hayvanlar.filter(h=>h.cinsiyet==="Erkek").length],["🔴 Gebe",dollenme.filter(d=>d.tahminiDogum&&kalanGun(d.tahminiDogum)>=0).length],["🐣 Toplam Yavru",dogumlar.reduce((t,d)=>t+Number(d.yavrular||0),0)]].map(([l,v])=>(
+                    <div key={l} style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
+                      <span style={{fontSize:13}}>{l}</span><strong>{v}</strong>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          );
+        }
+
+        // ─── HAYVAN ───────────────────────────────────────────────────────────────────
+        function HayvanKayitlari({hayvanlar,setHayvanlar,agirlikGecmisi,setAgirlikGecmisi}){
+          const bos={kupeNo:"",isim:"",cins:"",yas:"",cinsiyet:"Dişi",agirlik:"",notlar:""};
+          const [modal,setModal]=useState(false);
+          const [modalAg,setModalAg]=useState(false);
+          const [secili,setSecili]=useState(null);
+          const [form,setForm]=useState(bos);
+          const [duzenle,setDuzenle]=useState(null);
+          const [arama,setArama]=useState("");
+          const [formAg,setFormAg]=useState({tarih:bugun,agirlik:""});
+
+          const kaydet=async()=>{
+            if(!form.kupeNo)return alert("Küpe No zorunludur.");
+            const yeni=duzenle!==null?hayvanlar.map((h,i)=>i===duzenle?form:h):[...hayvanlar,{...form,id:Date.now()}];
+            setHayvanlar(yeni);await saveData(STORAGE_KEYS.hayvanlar,yeni);
+            setModal(false);setForm(bos);setDuzenle(null);
+          };
+
+          const sil=async(i)=>{
+            if(!confirm("Silmek istiyor musunuz?"))return;
+            const yeni=hayvanlar.filter((_,idx)=>idx!==i);
+            setHayvanlar(yeni);await saveData(STORAGE_KEYS.hayvanlar,yeni);
+          };
+
+          const kaydetAg=async()=>{
+            if(!formAg.agirlik)return alert("Ağırlık giriniz.");
+            const yeni=[...agirlikGecmisi,{...formAg,kupeNo:secili.kupeNo,id:Date.now()}];
+            setAgirlikGecmisi(yeni);await saveData(STORAGE_KEYS.agirlikGecmisi,yeni);
+            setModalAg(false);setFormAg({tarih:bugun,agirlik:""});
+          };
+
+          const filtreli=hayvanlar.filter(h=>h.kupeNo?.includes(arama)||h.isim?.toLowerCase().includes(arama.toLowerCase())||h.cins?.toLowerCase().includes(arama.toLowerCase()));
+
+          return(
+            <div>
+              <div style={S.card}>
+                <div style={S.row}><h2 style={S.h2}>🐑 Hayvan Kayıtları</h2><button style={S.btnP} onClick={()=>{setForm(bos);setDuzenle(null);setModal(true);}}>+ Hayvan Ekle</button></div>
+                <input style={{...S.input,marginBottom:16}} placeholder="Ara..." value={arama} onChange={e=>setArama(e.target.value)}/>
+                {filtreli.length===0?<div style={{color:R.metinAcik,textAlign:"center",padding:32}}>Kayıt yok.</div>:(
+                  <div style={{overflowX:"auto"}}>
+                    <table style={S.table}>.th}>{h}</th>)}</tr></thead>
+                      <tbody>{filtreli.map((h,i)=>{
+                        const ag=agirlikGecmisi.filter(a=>a.kupeNo===h.kupeNo).sort((a,b)=>b.tarih.localeCompare(a.tarih));
+                        return(
+                          <tr key={i}>
+                            <td style={S.td}><strong>{h.kupeNo}</strong></td>
+                            <td style={S.td}>{h.isim||"-"}</td>
+                            <td style={S.td}>{h.cins||"-"}</td>
+                            <td style={S.td}>{h.yas?`${h.yas} yaş`:"-"}</td>
+                            <td style={S.td}><span style={S.badge(h.cinsiyet==="Dişi"?R.birincil:R.vurgu)}>{h.cinsiyet}</span></td>
+                            <td style={S.td}>{ag[0]?`${ag[0].agirlik} kg`:h.agirlik?`${h.agirlik} kg`:"-"}</td>
+                            <td style={S.td}><div style={{display:"flex",gap:4}}>
+                              <button style={{...S.btnS,fontSize:12,padding:"5px 10px"}} onClick={()=>{setSecili(h);setModalAg(true);}}>⚖️</button>
+                              <button style={{...S.btnS,fontSize:12,padding:"5px 10px"}} onClick={()=>{setForm(h);setDuzenle(hayvanlar.indexOf(h));setModal(true);}}>✏️</button>
+                              <button style={{...S.btnD,fontSize:12,padding:"5px 10px"}} onClick={()=>sil(hayvanlar.indexOf(h))}>🗑</button>
+                            </div></td>
+                          </tr>
+                        );
+                      })}</tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+              {modal&&(<Modal title={duzenle!==null?"Hayvanı Düzenle":"Yeni Hayvan"} onClose={()=>{setModal(false);setDuzenle(null);}} onSave={kaydet}>
+                <div style={S.g2}>
+                  <F label="Küpe No *"><input style={S.input} value={form.kupeNo} onChange={e=>setForm({...form,kupeNo:e.target.value})}/></F>
+                  <F label="İsim"><input style={S.input} value={form.isim} onChange={e=>setForm({...form,isim:e.target.value})}/></F>
+                  <F label="Cins"><input style={S.input} value={form.cins} onChange={e=>setForm({...form,cins:e.target.value})} placeholder="Merinos, Akkaraman..."/></F>
+                  <F label="Yaş"><input style={S.input} type="number" value={form.yas} onChange={e=>setForm({...form,yas:e.target.value})}/></F>
+                  <F label="Cinsiyet"><select style={S.input} value={form.cinsiyet} onChange={e=>setForm({...form,cinsiyet:e.target.value})}><option>Dişi</option><option>Erkek</option></select></F>
+                  <F label="Ağırlık (kg)"><input style={S.input} type="number" value={form.agirlik} onChange={e=>setForm({...form,agirlik:e.target.value})}/></F>
+                </div>
+                <F label="Notlar"><textarea style={{...S.input,minHeight:70,resize:"vertical"}} value={form.notlar} onChange={e=>setForm({...form,notlar:e.target.value})}/></F>
+              </Modal>)}
+              {modalAg&&secili&&(<Modal title={`⚖️ ${secili.kupeNo} Ağırlık Takibi`} onClose={()=>setModalAg(false)} onSave={kaydetAg}>
+                <div style={S.g2}>
+                  <F label="Tarih"><input style={S.input} type="date" value={formAg.tarih} onChange={e=>setFormAg({...formAg,tarih:e.target.value})}/></F>
+                  <F label="Ağırlık (kg) *"><input style={S.input} type="number" value={formAg.agirlik} onChange={e=>setFormAg({...formAg,agirlik:e.target.value})}/></F>
+                </div>
+              </Modal>)}
+            </div>
+          );
+        }
+
+        // Ana Kök Bileşeni (State yönetimini kurup ekranları birleştiren kısım)
+        function App() {
+          const [hayvanlar, setHayvanlar] = useState([]);
+          const [islemler, setIslemler] = useState([]);
+          const [rasyonlar, setRasyonlar] = useState([]);
+          const [saglik, setSaglik] = useState([]);
+          const [dogumlar, setDogumlar] = useState([]);
+          const [dollenme, setDollenme] = useState([]);
+          const [agirlikGecmisi, setAgirlikGecmisi] = useState([]);
+
+          useEffect(() => {
+            async function init() {
+              setHayvanlar(await loadData(STORAGE_KEYS.hayvanlar));
+              setIslemler(await loadData(STORAGE_KEYS.islemler));
+              setRasyonlar(await loadData(STORAGE_KEYS.rasyonlar));
+              setSaglik(await loadData(STORAGE_KEYS.saglik));
+              setDogumlar(await loadData(STORAGE_KEYS.dogumlar));
+              setDollenme(await loadData(STORAGE_KEYS.dollenme));
+              setAgirlikGecmisi(await loadData(STORAGE_KEYS.agirlikGecmisi));
             }
-          </F>
-          <div style={S.g2}>
-            <F label="Döllenme Tarihi"><input style={S.input} type="date" value={formDl.dollenme} onChange={e=>{const t=tahminiDogumHesapla(e.target.value);setFormDl({...formDl,dollenme:e.target.value,tahminiDogum:formDl.tahminiDogum||t});}}/></F>
-            <F label="Tahmini Doğum"><input style={S.input} type="date" value={formDl.tahminiDogum} onChange={e=>setFormDl({...formDl,tahminiDogum:e.target.value})}/></F>
-          </div>
-          {formDl.tahminiDogum&&(
-            <div style={{background:R.birincil+"18",borderRadius:10,padding:12,marginBottom:12,display:"flex",alignItems:"center",gap:12}}>
-              <GunSayaci tarih={formDl.tahminiDogum} etiket="DOĞUMA KALAN"/>
-              <div style={{fontSize:13,color:R.metinAcik}}>* +150 gün otomatik hesaplandı</div>
+            init();
+          }, []);
+
+          return (
+            <div style={S.app}>
+              <div style={S.header}><h2>🚜 {APP_ADI}</h2></div>
+              <div style={S.content}>
+                <Ozet 
+                  hayvanlar={hayvanlar} 
+                  islemler={islemler} 
+                  dogumlar={dogumlar} 
+                  dollenme={dollenme} 
+                  rasyonlar={rasyonlar} 
+                  saglik={saglik} 
+                />
+                <div style={{marginTop:24}}>
+                  <HayvanKayitlari 
+                    hayvanlar={hayvanlar} 
+                    setHayvanlar={setHayvanlar} 
+                    agirlikGecmisi={agirlikGecmisi} 
+                    setAgirlikGecmisi={setAgirlikGecmisi} 
+                  />
+                </div>
+              </div>
             </div>
-          )}
-          <F label="Notlar"><textarea style={{...S.input,minHeight:60,resize:"vertical"}} value={formDl.notlar} onChange={e=>setFormDl({...formDl,notlar:e.target.value})}/></F>
-        </Modal>
-      )}
+          );
+        }
 
-      {modalD&&(
-        <Modal title="Doğum Kaydı Ekle" onClose={()=>setModalD(false)} onSave={kaydetDogum}>
-          <div style={S.g2}>
-            <F label="Anne Küpe No *">
-              {disiler.length>0
-                ?<select style={S.input} value={formD.anneKupe} onChange={e=>setFormD({...formD,anneKupe:e.target.value})}><option value="">Seçin...</option>{disiler.map(h=><option key={h.kupeNo} value={h.kupeNo}>{h.kupeNo}{h.isim?` - ${h.isim}`:""}</option>)}</select>
-                :<input style={S.input} value={formD.anneKupe} onChange={e=>setFormD({...formD,anneKupe:e.target.value})} placeholder="TR123456"/>
-              }
-            </F>
-            <F label="Baba Küpe No">
-              {erkekler.length>0
-                ?<select style={S.input} value={formD.babaKupe} onChange={e=>setFormD({...formD,babaKupe:e.target.value})}><option value="">Seçin...</option>{erkekler.map(h=><option key={h.kupeNo} value={h.kupeNo}>{h.kupeNo}{h.isim?` - ${h.isim}`:""}</option>)}</select>
-                :<input style={S.input} value={formD.babaKupe} onChange={e=>setFormD({...formD,babaKupe:e.target.value})} placeholder="TR789012"/>
-              }
-            </F>
-            <F label="Ne Zaman Gebe Kaldı"><input style={S.input} type="date" value={formD.gebeTarih} onChange={e=>setFormD({...formD,gebeTarih:e.target.value})}/></F>
-            <F label="Doğum Tarihi"><input style={S.input} type="date" value={formD.tarih} onChange={e=>setFormD({...formD,tarih:e.target.value})}/></F>
-            <F label="Yavru Sayısı"><input style={S.input} type="number" min="1" value={formD.yavrular} onChange={e=>setFormD({...formD,yavrular:e.target.value})}/></F>
-            <F label="Doğum Tipi">
-              <select style={S.input} value={formD.dogumTipi} onChange={e=>setFormD({...formD,dogumTipi:e.target.value})}>
-                <option>Kolay</option>
-                <option>Normal</option>
-                <option>Zor</option>
-                <option>Müdahaleli</option>
-                <option>Sezaryen</option>
-              </select>
-            </F>
-          </div>
-          <F label="Notlar"><textarea style={{...S.input,minHeight:70,resize:"vertical"}} value={formD.notlar} onChange={e=>setFormD({...formD,notlar:e.target.value})}/></F>
-        </Modal>
-      )}
-    </div>
-  );
-}
-
-// ─── ANA UYGULAMA ─────────────────────────────────────────────────────────────
-export default function App(){
-  const [sekme,setSekme]=useState("ozet");
-  const [hayvanlar,setHayvanlar]=useState([]);
-  const [islemler,setIslemler]=useState([]);
-  const [rasyonlar,setRasyonlar]=useState([]);
-  const [saglik,setSaglik]=useState([]);
-  const [dogumlar,setDogumlar]=useState([]);
-  const [dollenme,setDollenme]=useState([]);
-  const [agirlikGecmisi,setAgirlikGecmisi]=useState([]);
-  const [yukleniyor,setYukleniyor]=useState(true);
-
-  useEffect(()=>{
-    (async()=>{
-      const [h,i,r,s,d,dl,ag]=await Promise.all([
-        loadData(STORAGE_KEYS.hayvanlar),loadData(STORAGE_KEYS.islemler),
-        loadData(STORAGE_KEYS.rasyonlar),loadData(STORAGE_KEYS.saglik),
-        loadData(STORAGE_KEYS.dogumlar),loadData(STORAGE_KEYS.dollenme),
-        loadData(STORAGE_KEYS.agirlikGecmisi),
-      ]);
-      setHayvanlar(h);setIslemler(i);setRasyonlar(r);setSaglik(s);setDogumlar(d);setDollenme(dl);setAgirlikGecmisi(ag);
-      setYukleniyor(false);
-    })();
-  },[]);
-
-  const sekmeler=[
-    {id:"ozet",l:"📊 Özet"},{id:"hayvanlar",l:"🐑 Hayvanlar"},{id:"gelirGider",l:"💰 Gelir/Gider"},
-    {id:"rasyonlar",l:"🌾 Rasyonlar"},{id:"saglik",l:"💉 Sağlık"},{id:"dogum",l:"🐣 Doğum"},
-  ];
-
-  if(yukleniyor)return(
-    <div style={{...S.app,display:"flex",alignItems:"center",justifyContent:"center"}}>
-      <div style={{textAlign:"center",color:R.metinAcik}}><div style={{fontSize:48,marginBottom:12}}>🐑</div><div>Yükleniyor...</div></div>
-    </div>
-  );
-
-  return(
-    <div style={S.app}>
-      <div style={S.header}>
-        <span style={{fontSize:28}}>🐑</span>
-        <div style={{flex:1}}>
-          <div style={{fontWeight:"700",fontSize:18}}>{APP_ADI}</div>
-          <div style={{fontSize:12,opacity:0.8}}>{hayvanlar.length} hayvan kayıtlı</div>
-        </div>
-        <button onClick={()=>exportExcel(hayvanlar,islemler,saglik,dogumlar,dollenme,rasyonlar)} style={{background:"rgba(255,255,255,0.2)",color:"#fff",border:"none",borderRadius:7,padding:"7px 12px",cursor:"pointer",fontFamily:"inherit",fontSize:12}}>📤 Excel</button>
-      </div>
-      <nav style={S.nav}>
-        {sekmeler.map(s=><button key={s.id} style={S.navBtn(sekme===s.id)} onClick={()=>setSekme(s.id)}>{s.l}</button>)}
-      </nav>
-      <div style={S.content}>
-        {sekme==="ozet"&&<Ozet hayvanlar={hayvanlar} islemler={islemler} saglik={saglik} dogumlar={dogumlar} dollenme={dollenme} rasyonlar={rasyonlar}/>}
-        {sekme==="hayvanlar"&&<HayvanKayitlari hayvanlar={hayvanlar} setHayvanlar={setHayvanlar} agirlikGecmisi={agirlikGecmisi} setAgirlikGecmisi={setAgirlikGecmisi}/>}
-        {sekme==="gelirGider"&&<GelirGider islemler={islemler} setIslemler={setIslemler}/>}
-        {sekme==="rasyonlar"&&<BeslemeRasyonlari rasyonlar={rasyonlar} setRasyonlar={setRasyonlar}/>}
-        {sekme==="saglik"&&<SaglikTakibi saglik={saglik} setSaglik={setSaglik} hayvanlar={hayvanlar}/>}
-        {sekme==="dogum"&&<DogumTakibi dogumlar={dogumlar} setDogumlar={setDogumlar} dollenme={dollenme} setDollenme={setDollenme} hayvanlar={hayvanlar}/>}
-      </div>
-    </div>
-  );
-}
+        // React DOM 18 ile Root elementini render etme alanı
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+</body>
+</html>
+                      <thead><tr>{["Küpe No","İsim","Cins","Yaş","Cinsiyet","Ağırlık",""].map(h=><th key={h} style={S
