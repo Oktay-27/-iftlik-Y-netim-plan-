@@ -329,4 +329,516 @@ function HayvanKayitlari({hayvanlar,setHayvanlar,agirlikGecmisi,setAgirlikGecmis
       {modalAg&&secili&&(<Modal title={`⚖️ ${secili.kupeNo} Ağırlık Takibi`} onClose={()=>setModalAg(false)} onSave={kaydetAg}>
         <div style={S.g2}>
           <F label="Tarih"><input style={S.input} type="date" value={formAg.tarih} onChange={e=>setFormAg({...formAg,tarih:e.target.value})}/></F>
-          <F label="Ağırlık (kg) *"><input style={S.input} type="number" 
+          <F label="Ağırlık (kg) *"><input style={S.input} type="number" value={formAg.agirlik} onChange={e=>setFormAg({...formAg,agirlik:e.target.value})}/></F>
+        </div>
+        {agirlikGecmisi.filter(a=>a.kupeNo===secili.kupeNo).length>0&&(
+          <div>
+            <div style={{fontSize:12,fontWeight:"700",color:R.metinAcik,marginBottom:8,textTransform:"uppercase"}}>Geçmiş</div>
+            {agirlikGecmisi.filter(a=>a.kupeNo===secili.kupeNo).sort((a,b)=>b.tarih.localeCompare(a.tarih)).slice(0,5).map((a,i)=>(
+              <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:`1px solid ${R.sinir}`,fontSize:14}}>
+                <span>{a.tarih}</span><strong>{a.agirlik} kg</strong>
+              </div>
+            ))}
+          </div>
+        )}
+      </Modal>)}
+    </div>
+  );
+}
+
+// ─── GELİR GİDER ─────────────────────────────────────────────────────────────
+function GelirGider({islemler,setIslemler}){
+  const bos={tarih:bugun,tip:"Gelir",kategori:"",tutar:"",aciklama:""};
+  const [modal,setModal]=useState(false);
+  const [form,setForm]=useState(bos);
+  const gelir=islemler.filter(i=>i.tip==="Gelir").reduce((t,i)=>t+Number(i.tutar),0);
+  const gider=islemler.filter(i=>i.tip==="Gider").reduce((t,i)=>t+Number(i.tutar),0);
+
+  const kaydet=async()=>{
+    if(!form.tutar||!form.kategori)return alert("Tutar ve kategori zorunludur.");
+    const yeni=[...islemler,{...form,id:Date.now()}];
+    setIslemler(yeni);await saveData(STORAGE_KEYS.islemler,yeni);
+    setModal(false);setForm(bos);
+  };
+  const sil=async(i)=>{const y=islemler.filter((_,idx)=>idx!==i);setIslemler(y);await saveData(STORAGE_KEYS.islemler,y);};
+  const gKat=["Süt Satışı","Hayvan Satışı","Yün Satışı","Et Satışı","Diğer"];
+  const giKat=["Yem","Veteriner","İlaç","Bakım","Ekipman","İşçilik","Diğer"];
+
+  return(
+    <div>
+      <div style={S.g3}>
+        {[{l:"Toplam Gelir",v:gelir,c:R.birincil,i:"💰"},{l:"Toplam Gider",v:gider,c:R.vurgu,i:"📤"},{l:"Net Kâr",v:gelir-gider,c:(gelir-gider)>=0?R.birincil:R.tehlike,i:"📊"}].map((x,i)=>(
+          <div key={i} style={{...S.card,textAlign:"center"}}>
+            <div style={{fontSize:22}}>{x.i}</div>
+            <div style={{fontSize:20,fontWeight:"700",color:x.c,margin:"6px 0"}}>{x.v.toLocaleString("tr-TR")} ₺</div>
+            <div style={{fontSize:12,color:R.metinAcik}}>{x.l}</div>
+          </div>
+        ))}
+      </div>
+      <div style={S.card}>
+        <div style={S.row}><h2 style={S.h2}>💳 Kayıtlar</h2><button style={S.btnP} onClick={()=>setModal(true)}>+ Ekle</button></div>
+        {islemler.length===0?<div style={{color:R.metinAcik,textAlign:"center",padding:32}}>Kayıt yok.</div>:(
+          <div style={{overflowX:"auto"}}>
+            <table style={S.table}>
+              <thead><tr>{["Tarih","Tip","Kategori","Tutar","Açıklama",""].map(h=><th key={h} style={S.th}>{h}</th>)}</tr></thead>
+              <tbody>{[...islemler].reverse().map((x,i)=>(
+                <tr key={i}>
+                  <td style={S.td}>{x.tarih}</td>
+                  <td style={S.td}><span style={S.badge(x.tip==="Gelir"?R.birincil:R.vurgu)}>{x.tip}</span></td>
+                  <td style={S.td}>{x.kategori}</td>
+                  <td style={S.td}><strong style={{color:x.tip==="Gelir"?R.birincil:R.vurgu}}>{Number(x.tutar).toLocaleString("tr-TR")} ₺</strong></td>
+                  <td style={S.td}>{x.aciklama||"-"}</td>
+                  <td style={S.td}><button style={S.btnD} onClick={()=>sil(islemler.indexOf(x))}>Sil</button></td>
+                </tr>
+              ))}</tbody>
+            </table>
+          </div>
+        )}
+      </div>
+      {modal&&(<Modal title="Gelir / Gider Ekle" onClose={()=>{setModal(false);setForm(bos);}} onSave={kaydet}>
+        <div style={S.g2}>
+          <F label="Tip"><select style={S.input} value={form.tip} onChange={e=>setForm({...form,tip:e.target.value,kategori:""})}><option>Gelir</option><option>Gider</option></select></F>
+          <F label="Tarih"><input style={S.input} type="date" value={form.tarih} onChange={e=>setForm({...form,tarih:e.target.value})}/></F>
+          <F label="Kategori *"><select style={S.input} value={form.kategori} onChange={e=>setForm({...form,kategori:e.target.value})}><option value="">Seçin...</option>{(form.tip==="Gelir"?gKat:giKat).map(k=><option key={k}>{k}</option>)}</select></F>
+          <F label="Tutar (₺) *"><input style={S.input} type="number" value={form.tutar} onChange={e=>setForm({...form,tutar:e.target.value})}/></F>
+        </div>
+        <F label="Açıklama"><input style={S.input} value={form.aciklama} onChange={e=>setForm({...form,aciklama:e.target.value})}/></F>
+      </Modal>)}
+    </div>
+  );
+}
+
+// ─── BESLEME RASYONLARI (malzeme listeli) ────────────────────────────────────
+function BeslemeRasyonlari({rasyonlar,setRasyonlar}){
+  const bosForm={isim:"",hayvanGrubu:"Tüm Sürü",gunluk:true,degisimTarihi:bugun,sonrakiDegisim:"",malzemeler:[{ad:"",kg:""}]};
+  const [modal,setModal]=useState(false);
+  const [form,setForm]=useState(bosForm);
+  const [duzenle,setDuzenle]=useState(null);
+
+  const malzemeEkle=()=>setForm({...form,malzemeler:[...form.malzemeler,{ad:"",kg:""}]});
+  const malzemeSil=(i)=>setForm({...form,malzemeler:form.malzemeler.filter((_,idx)=>idx!==i)});
+  const malzemeGuncelle=(i,alan,val)=>{
+    const yeni=[...form.malzemeler];
+    yeni[i]={...yeni[i],[alan]:val};
+    setForm({...form,malzemeler:yeni});
+  };
+
+  const toplamKg=(malzemeler)=>malzemeler.reduce((t,m)=>t+(Number(m.kg)||0),0);
+
+  const kaydet=async()=>{
+    if(!form.isim)return alert("Rasyon adı zorunludur.");
+    if(form.malzemeler.some(m=>!m.ad))return alert("Tüm malzeme adlarını doldurun.");
+    const yeni=duzenle!==null?rasyonlar.map((r,i)=>i===duzenle?form:r):[...rasyonlar,{...form,id:Date.now()}];
+    setRasyonlar(yeni);await saveData(STORAGE_KEYS.rasyonlar,yeni);
+    setModal(false);setForm(bosForm);setDuzenle(null);
+  };
+  const sil=async(i)=>{const y=rasyonlar.filter((_,idx)=>idx!==i);setRasyonlar(y);await saveData(STORAGE_KEYS.rasyonlar,y);};
+
+  return(
+    <div>
+      <div style={S.card}>
+        <div style={S.row}><h2 style={S.h2}>🌾 Besleme Rasyonları</h2><button style={S.btnP} onClick={()=>{setForm(bosForm);setDuzenle(null);setModal(true);}}>+ Rasyon Ekle</button></div>
+        {rasyonlar.length===0?<div style={{color:R.metinAcik,textAlign:"center",padding:32}}>Rasyon eklenmedi.</div>:(
+          <div style={{display:"flex",flexDirection:"column",gap:12}}>
+            {rasyonlar.map((r,i)=>(
+              <div key={i} style={{border:`1px solid ${R.sinir}`,borderRadius:10,padding:16,background:R.zemin}}>
+                <div style={{display:"flex",gap:16,alignItems:"flex-start",flexWrap:"wrap"}}>
+                  {r.sonrakiDegisim&&<GunSayaci tarih={r.sonrakiDegisim} etiket="DEĞİŞİME KALAN"/>}
+                  <div style={{flex:1,minWidth:160}}>
+                    <div style={{fontWeight:"700",fontSize:16,marginBottom:4}}>{r.isim}</div>
+                    <div style={{fontSize:13,color:R.metinAcik,marginBottom:8}}>{r.hayvanGrubu} • {r.gunluk?"Günlük":"Öğün başına"}</div>
+                    {/* Malzeme listesi */}
+                    <div style={{background:"#fff",borderRadius:8,padding:12,border:`1px solid ${R.sinir}`}}>
+                      <div style={{fontSize:12,fontWeight:"700",color:R.metinAcik,marginBottom:8,textTransform:"uppercase"}}>Malzemeler</div>
+                      {(r.malzemeler||[]).map((m,mi)=>(
+                        <div key={mi} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:`1px solid ${R.sinir}`,fontSize:14}}>
+                          <span>{m.ad}</span>
+                          <strong>{m.kg} kg</strong>
+                        </div>
+                      ))}
+                      <div style={{display:"flex",justifyContent:"space-between",padding:"8px 0 0",fontSize:14,fontWeight:"700",color:R.birincil}}>
+                        <span>Toplam</span>
+                        <span>{toplamKg(r.malzemeler||[])} kg</span>
+                      </div>
+                    </div>
+                    {r.degisimTarihi&&<div style={{fontSize:12,color:R.metinAcik,marginTop:8}}>Başlangıç: {r.degisimTarihi}</div>}
+                    {r.sonrakiDegisim&&<div style={{fontSize:12,color:R.metinAcik}}>Sonraki değişim: {r.sonrakiDegisim}</div>}
+                  </div>
+                </div>
+                <div style={{display:"flex",gap:6,marginTop:12}}>
+                  <button style={S.btnS} onClick={()=>{setForm(r);setDuzenle(i);setModal(true);}}>Düzenle</button>
+                  <button style={S.btnD} onClick={()=>sil(i)}>Sil</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {modal&&(
+        <Modal title={duzenle!==null?"Rasyonu Düzenle":"Yeni Rasyon"} onClose={()=>{setModal(false);setDuzenle(null);}} onSave={kaydet}>
+          <F label="Rasyon Adı *"><input style={S.input} value={form.isim} onChange={e=>setForm({...form,isim:e.target.value})} placeholder="Günlük süt koyunu rasyonu"/></F>
+          <F label="Hayvan Grubu"><select style={S.input} value={form.hayvanGrubu} onChange={e=>setForm({...form,hayvanGrubu:e.target.value})}>
+            {["Tüm Sürü","Dişi Koyunlar","Erkek Koyunlar","Kuzular","Gebe Koyunlar","Süt Koyunları"].map(g=><option key={g}>{g}</option>)}
+          </select></F>
+          <F label="Sıklık"><select style={S.input} value={form.gunluk?"g":"o"} onChange={e=>setForm({...form,gunluk:e.target.value==="g"})}><option value="g">Günlük</option><option value="o">Öğün başına</option></select></F>
+
+          {/* Malzeme listesi */}
+          <div style={{marginBottom:12}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+              <label style={S.label}>Malzemeler (kg)</label>
+              <button onClick={malzemeEkle} style={{...S.btnS,fontSize:12,padding:"4px 10px"}}>+ Malzeme Ekle</button>
+            </div>
+            {form.malzemeler.map((m,i)=>(
+              <div key={i} style={{display:"flex",gap:8,marginBottom:8,alignItems:"center"}}>
+                <input style={{...S.input,flex:2}} placeholder="Malzeme adı (kuru ot, kepek...)" value={m.ad} onChange={e=>malzemeGuncelle(i,"ad",e.target.value)}/>
+                <input style={{...S.input,flex:1}} type="number" placeholder="kg" value={m.kg} onChange={e=>malzemeGuncelle(i,"kg",e.target.value)}/>
+                {form.malzemeler.length>1&&<button onClick={()=>malzemeSil(i)} style={{...S.btnD,padding:"7px 10px",flexShrink:0}}>×</button>}
+              </div>
+            ))}
+            {form.malzemeler.some(m=>m.kg)&&(
+              <div style={{textAlign:"right",fontSize:14,fontWeight:"700",color:R.birincil,marginTop:4}}>
+                Toplam: {toplamKg(form.malzemeler)} kg
+              </div>
+            )}
+          </div>
+
+          <div style={S.g2}>
+            <F label="Başlangıç Tarihi"><input style={S.input} type="date" value={form.degisimTarihi} onChange={e=>setForm({...form,degisimTarihi:e.target.value})}/></F>
+            <F label="Sonraki Değişim"><input style={S.input} type="date" value={form.sonrakiDegisim} onChange={e=>setForm({...form,sonrakiDegisim:e.target.value})}/></F>
+          </div>
+          {form.sonrakiDegisim&&(
+            <div style={{background:R.birincil+"18",borderRadius:10,padding:12,display:"flex",alignItems:"center",gap:12}}>
+              <GunSayaci tarih={form.sonrakiDegisim} etiket="DEĞİŞİME KALAN"/>
+              <span style={{fontSize:13,color:R.metinAcik}}>sonraki değişime kalan</span>
+            </div>
+          )}
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+// ─── SAĞLIK TAKİBİ (aşı tekrar tarihli) ─────────────────────────────────────
+function SaglikTakibi({saglik,setSaglik,hayvanlar}){
+  const bos={kupeNo:"",tarih:bugun,tip:"Aşı",aciklama:"",veteriner:"",tekrarTarihi:"",tekrarGun:""};
+  const [modal,setModal]=useState(false);
+  const [form,setForm]=useState(bos);
+
+  const tekrarGunHesapla=(tarih,gun)=>{
+    if(!tarih||!gun)return "";
+    const d=new Date(tarih); d.setDate(d.getDate()+Number(gun));
+    return d.toISOString().split("T")[0];
+  };
+
+  const kaydet=async()=>{
+    if(!form.kupeNo)return alert("Küpe No zorunludur.");
+    let tekrar=form.tekrarTarihi;
+    if(!tekrar&&form.tekrarGun&&form.tarih) tekrar=tekrarGunHesapla(form.tarih,form.tekrarGun);
+    const yeni=[...saglik,{...form,tekrarTarihi:tekrar,id:Date.now()}];
+    setSaglik(yeni);await saveData(STORAGE_KEYS.saglik,yeni);
+    setModal(false);setForm(bos);
+  };
+  const sil=async(i)=>{const y=saglik.filter((_,idx)=>idx!==i);setSaglik(y);await saveData(STORAGE_KEYS.saglik,y);};
+
+  return(
+    <div>
+      <div style={S.card}>
+        <div style={S.row}><h2 style={S.h2}>💉 Sağlık Takibi</h2><button style={S.btnP} onClick={()=>setModal(true)}>+ Kayıt Ekle</button></div>
+        {saglik.length===0?<div style={{color:R.metinAcik,textAlign:"center",padding:32}}>Kayıt yok.</div>:(
+          <div style={{display:"flex",flexDirection:"column",gap:10}}>
+            {[...saglik].reverse().map((s,i)=>(
+              <div key={i} style={{border:`1px solid ${R.sinir}`,borderRadius:10,padding:14,background:R.zemin}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:8}}>
+                  <div>
+                    <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:4}}>
+                      <strong style={{fontSize:15}}>{s.kupeNo}</strong>
+                      <span style={S.badge(s.tip==="Aşı"?R.birincil:s.tip==="Tedavi"?R.vurgu:R.metinAcik)}>{s.tip}</span>
+                    </div>
+                    <div style={{fontSize:13,color:R.metinAcik}}>📅 İlk uygulama: {s.tarih}</div>
+                    {s.aciklama&&<div style={{fontSize:13,marginTop:2}}>📝 {s.aciklama}</div>}
+                    {s.veteriner&&<div style={{fontSize:13,color:R.metinAcik}}>👨‍⚕️ {s.veteriner}</div>}
+                    {s.tekrarTarihi&&(
+                      <div style={{marginTop:8,background:"#fff",borderRadius:8,padding:"8px 12px",border:`1px solid ${R.sinir}`,display:"flex",alignItems:"center",gap:12}}>
+                        <GunSayaci tarih={s.tekrarTarihi} etiket="TEKRARA KALAN"/>
+                        <div>
+                          <div style={{fontSize:12,fontWeight:"700",color:R.metinAcik}}>TEKRAR TARİHİ</div>
+                          <div style={{fontSize:14,fontWeight:"700"}}>{s.tekrarTarihi}</div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <button style={S.btnD} onClick={()=>sil(saglik.indexOf(s))}>Sil</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {modal&&(
+        <Modal title="Sağlık Kaydı Ekle" onClose={()=>{setModal(false);setForm(bos);}} onSave={kaydet}>
+          <div style={S.g2}>
+            <F label="Küpe No *">
+              {hayvanlar.length>0
+                ?<select style={S.input} value={form.kupeNo} onChange={e=>setForm({...form,kupeNo:e.target.value})}><option value="">Seçin...</option>{hayvanlar.map(h=><option key={h.kupeNo} value={h.kupeNo}>{h.kupeNo}{h.isim?` - ${h.isim}`:""}</option>)}</select>
+                :<input style={S.input} value={form.kupeNo} onChange={e=>setForm({...form,kupeNo:e.target.value})} placeholder="TR123456"/>
+              }
+            </F>
+            <F label="Uygulama Tarihi"><input style={S.input} type="date" value={form.tarih} onChange={e=>setForm({...form,tarih:e.target.value,tekrarTarihi:form.tekrarGun?tekrarGunHesapla(e.target.value,form.tekrarGun):""})} /></F>
+            <F label="İşlem Tipi"><select style={S.input} value={form.tip} onChange={e=>setForm({...form,tip:e.target.value})}>{["Aşı","Tedavi","Kontrol","Tırnak Bakımı","Kırkım","Diğer"].map(t=><option key={t}>{t}</option>)}</select></F>
+            <F label="Veteriner"><input style={S.input} value={form.veteriner} onChange={e=>setForm({...form,veteriner:e.target.value})}/></F>
+          </div>
+          <F label="Açıklama / Notlar"><textarea style={{...S.input,minHeight:60,resize:"vertical"}} value={form.aciklama} onChange={e=>setForm({...form,aciklama:e.target.value})}/></F>
+
+          {/* Tekrar bölümü */}
+          <div style={{background:R.birincil+"12",borderRadius:8,padding:14,border:`1px solid ${R.birincil}33`,marginTop:4}}>
+            <div style={{fontWeight:"700",fontSize:13,marginBottom:10,color:R.birincil}}>🔁 Tekrar / Hatırlatma</div>
+            <div style={S.g2}>
+              <F label="Kaç gün sonra tekrar?">
+                <input style={S.input} type="number" placeholder="Örn: 21" value={form.tekrarGun}
+                  onChange={e=>{
+                    const gun=e.target.value;
+                    const tarih=form.tarih?tekrarGunHesapla(form.tarih,gun):"";
+                    setForm({...form,tekrarGun:gun,tekrarTarihi:tarih});
+                  }}/>
+              </F>
+              <F label="Veya tarih seç">
+                <input style={S.input} type="date" value={form.tekrarTarihi} onChange={e=>setForm({...form,tekrarTarihi:e.target.value,tekrarGun:""})}/>
+              </F>
+            </div>
+            {form.tekrarTarihi&&(
+              <div style={{display:"flex",alignItems:"center",gap:12,marginTop:4,background:"#fff",borderRadius:8,padding:10}}>
+                <GunSayaci tarih={form.tekrarTarihi} etiket="TEKRARA KALAN"/>
+                <div style={{fontSize:13,color:R.metinAcik}}>Tekrar tarihi: <strong>{form.tekrarTarihi}</strong></div>
+              </div>
+            )}
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+// ─── DOĞUM TAKİBİ (baba küpesi, zor/kolay doğum) ────────────────────────────
+function DogumTakibi({dogumlar,setDogumlar,dollenme,setDollenme,hayvanlar}){
+  const bosD={anneKupe:"",babaKupe:"",gebeTarih:"",tarih:bugun,yavrular:1,dogumTipi:"Kolay",notlar:""};
+  const bosDl={kupeNo:"",dollenme:bugun,tahminiDogum:"",notlar:""};
+  const [modalD,setModalD]=useState(false);
+  const [modalDl,setModalDl]=useState(false);
+  const [formD,setFormD]=useState(bosD);
+  const [formDl,setFormDl]=useState(bosDl);
+  const [tab,setTab]=useState("dollenme");
+
+  const kaydetDogum=async()=>{
+    if(!formD.anneKupe)return alert("Anne küpe no zorunludur.");
+    const yeni=[...dogumlar,{...formD,id:Date.now()}];
+    setDogumlar(yeni);await saveData(STORAGE_KEYS.dogumlar,yeni);
+    setModalD(false);setFormD(bosD);
+  };
+
+  const kaydetDollenme=async()=>{
+    if(!formDl.kupeNo)return alert("Küpe no zorunludur.");
+    const tahmin=tahminiDogumHesapla(formDl.dollenme);
+    const yeni=[...dollenme,{...formDl,tahminiDogum:formDl.tahminiDogum||tahmin,id:Date.now()}];
+    setDollenme(yeni);await saveData(STORAGE_KEYS.dollenme,yeni);
+    setModalDl(false);setFormDl(bosDl);
+  };
+
+  const silDogum=async(i)=>{const y=dogumlar.filter((_,idx)=>idx!==i);setDogumlar(y);await saveData(STORAGE_KEYS.dogumlar,y);};
+  const silDollenme=async(i)=>{const y=dollenme.filter((_,idx)=>idx!==i);setDollenme(y);await saveData(STORAGE_KEYS.dollenme,y);};
+  const disiler=hayvanlar.filter(h=>h.cinsiyet==="Dişi");
+  const erkekler=hayvanlar.filter(h=>h.cinsiyet==="Erkek");
+
+  return(
+    <div>
+      {dollenme.filter(d=>d.tahminiDogum&&kalanGun(d.tahminiDogum)>=0).length>0&&(
+        <div style={S.card}>
+          <div style={{fontWeight:"700",marginBottom:14}}>🐣 Doğuma Kalan Günler</div>
+          <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
+            {dollenme.filter(d=>d.tahminiDogum&&kalanGun(d.tahminiDogum)>=0).sort((a,b)=>kalanGun(a.tahminiDogum)-kalanGun(b.tahminiDogum)).map((d,i)=>(
+              <div key={i} style={{display:"flex",alignItems:"center",gap:12,background:R.zemin,borderRadius:10,padding:"12px 16px",flex:1,minWidth:180}}>
+                <GunSayaci tarih={d.tahminiDogum} etiket="DOĞUMA KALAN"/>
+                <div><div style={{fontWeight:"700",fontSize:15}}>{d.kupeNo}</div><div style={{fontSize:12,color:R.metinAcik}}>{d.tahminiDogum}</div></div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div style={{display:"flex",marginBottom:16,background:"#fff",borderRadius:10,border:`1px solid ${R.sinir}`,overflow:"hidden"}}>
+        {[{id:"dollenme",l:"🔴 Döllenme & Gebelik"},{id:"dogum",l:"🐣 Doğum Kayıtları"}].map(t=>(
+          <button key={t.id} onClick={()=>setTab(t.id)} style={{flex:1,padding:"12px",border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:14,fontWeight:tab===t.id?"700":"400",background:tab===t.id?R.birincil:"transparent",color:tab===t.id?"#fff":R.metinAcik}}>
+            {t.l}
+          </button>
+        ))}
+      </div>
+
+      {tab==="dollenme"&&(
+        <div style={S.card}>
+          <div style={S.row}><h2 style={S.h2}>🔴 Döllenme Kayıtları</h2><button style={S.btnP} onClick={()=>setModalDl(true)}>+ Döllenme Ekle</button></div>
+          {dollenme.length===0?<div style={{color:R.metinAcik,textAlign:"center",padding:32}}>Kayıt yok.</div>:(
+            <div style={{overflowX:"auto"}}>
+              <table style={S.table}>
+                <thead><tr>{["Küpe No","Döllenme","Tahmini Doğum","Kalan Gün","Notlar",""].map(h=><th key={h} style={S.th}>{h}</th>)}</tr></thead>
+                <tbody>{[...dollenme].reverse().map((d,i)=>(
+                  <tr key={i}>
+                    <td style={S.td}><strong>{d.kupeNo}</strong></td>
+                    <td style={S.td}>{d.dollenme}</td>
+                    <td style={S.td}>{d.tahminiDogum||"-"}</td>
+                    <td style={S.td}><KalanBadge tarih={d.tahminiDogum}/></td>
+                    <td style={S.td}>{d.notlar||"-"}</td>
+                    <td style={S.td}><button style={S.btnD} onClick={()=>silDollenme(dollenme.indexOf(d))}>Sil</button></td>
+                  </tr>
+                ))}</tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {tab==="dogum"&&(
+        <div style={S.card}>
+          <div style={S.row}><h2 style={S.h2}>🐣 Doğum Kayıtları</h2><button style={S.btnP} onClick={()=>setModalD(true)}>+ Doğum Ekle</button></div>
+          {dogumlar.length===0?<div style={{color:R.metinAcik,textAlign:"center",padding:32}}>Kayıt yok.</div>:(
+            <div style={{display:"flex",flexDirection:"column",gap:10}}>
+              {[...dogumlar].reverse().map((d,i)=>(
+                <div key={i} style={{border:`1px solid ${R.sinir}`,borderRadius:10,padding:14,background:R.zemin}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                    <div>
+                      <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap",marginBottom:6}}>
+                        <span style={{fontSize:15}}>🐑 Anne: <strong>{d.anneKupe}</strong></span>
+                        {d.babaKupe&&<span style={{fontSize:15}}>🐏 Baba: <strong>{d.babaKupe}</strong></span>}
+                        <span style={S.badge(d.dogumTipi==="Kolay"?R.birincil:d.dogumTipi==="Zor"?R.tehlike:R.uyari)}>{d.dogumTipi} Doğum</span>
+                      </div>
+                      <div style={{fontSize:13,color:R.metinAcik}}>📅 {d.tarih}</div>
+                      {d.gebeTarih&&<div style={{fontSize:13,color:R.metinAcik}}>🔴 Gebe kaldı: {d.gebeTarih}</div>}
+                      <div style={{fontSize:14,marginTop:4}}><span style={S.badge(R.birincil)}>🐑 × {d.yavrular} yavru</span></div>
+                      {d.notlar&&<div style={{fontSize:13,marginTop:4}}>📝 {d.notlar}</div>}
+                    </div>
+                    <button style={S.btnD} onClick={()=>silDogum(dogumlar.indexOf(d))}>Sil</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {modalDl&&(
+        <Modal title="Döllenme Kaydı" onClose={()=>setModalDl(false)} onSave={kaydetDollenme}>
+          <F label="Küpe No *">
+            {disiler.length>0
+              ?<select style={S.input} value={formDl.kupeNo} onChange={e=>setFormDl({...formDl,kupeNo:e.target.value})}><option value="">Seçin...</option>{disiler.map(h=><option key={h.kupeNo} value={h.kupeNo}>{h.kupeNo}{h.isim?` - ${h.isim}`:""}</option>)}</select>
+              :<input style={S.input} value={formDl.kupeNo} onChange={e=>setFormDl({...formDl,kupeNo:e.target.value})} placeholder="TR123456"/>
+            }
+          </F>
+          <div style={S.g2}>
+            <F label="Döllenme Tarihi"><input style={S.input} type="date" value={formDl.dollenme} onChange={e=>{const t=tahminiDogumHesapla(e.target.value);setFormDl({...formDl,dollenme:e.target.value,tahminiDogum:formDl.tahminiDogum||t});}}/></F>
+            <F label="Tahmini Doğum"><input style={S.input} type="date" value={formDl.tahminiDogum} onChange={e=>setFormDl({...formDl,tahminiDogum:e.target.value})}/></F>
+          </div>
+          {formDl.tahminiDogum&&(
+            <div style={{background:R.birincil+"18",borderRadius:10,padding:12,marginBottom:12,display:"flex",alignItems:"center",gap:12}}>
+              <GunSayaci tarih={formDl.tahminiDogum} etiket="DOĞUMA KALAN"/>
+              <div style={{fontSize:13,color:R.metinAcik}}>* +150 gün otomatik hesaplandı</div>
+            </div>
+          )}
+          <F label="Notlar"><textarea style={{...S.input,minHeight:60,resize:"vertical"}} value={formDl.notlar} onChange={e=>setFormDl({...formDl,notlar:e.target.value})}/></F>
+        </Modal>
+      )}
+
+      {modalD&&(
+        <Modal title="Doğum Kaydı Ekle" onClose={()=>setModalD(false)} onSave={kaydetDogum}>
+          <div style={S.g2}>
+            <F label="Anne Küpe No *">
+              {disiler.length>0
+                ?<select style={S.input} value={formD.anneKupe} onChange={e=>setFormD({...formD,anneKupe:e.target.value})}><option value="">Seçin...</option>{disiler.map(h=><option key={h.kupeNo} value={h.kupeNo}>{h.kupeNo}{h.isim?` - ${h.isim}`:""}</option>)}</select>
+                :<input style={S.input} value={formD.anneKupe} onChange={e=>setFormD({...formD,anneKupe:e.target.value})} placeholder="TR123456"/>
+              }
+            </F>
+            <F label="Baba Küpe No">
+              {erkekler.length>0
+                ?<select style={S.input} value={formD.babaKupe} onChange={e=>setFormD({...formD,babaKupe:e.target.value})}><option value="">Seçin...</option>{erkekler.map(h=><option key={h.kupeNo} value={h.kupeNo}>{h.kupeNo}{h.isim?` - ${h.isim}`:""}</option>)}</select>
+                :<input style={S.input} value={formD.babaKupe} onChange={e=>setFormD({...formD,babaKupe:e.target.value})} placeholder="TR789012"/>
+              }
+            </F>
+            <F label="Ne Zaman Gebe Kaldı"><input style={S.input} type="date" value={formD.gebeTarih} onChange={e=>setFormD({...formD,gebeTarih:e.target.value})}/></F>
+            <F label="Doğum Tarihi"><input style={S.input} type="date" value={formD.tarih} onChange={e=>setFormD({...formD,tarih:e.target.value})}/></F>
+            <F label="Yavru Sayısı"><input style={S.input} type="number" min="1" value={formD.yavrular} onChange={e=>setFormD({...formD,yavrular:e.target.value})}/></F>
+            <F label="Doğum Tipi">
+              <select style={S.input} value={formD.dogumTipi} onChange={e=>setFormD({...formD,dogumTipi:e.target.value})}>
+                <option>Kolay</option>
+                <option>Normal</option>
+                <option>Zor</option>
+                <option>Müdahaleli</option>
+                <option>Sezaryen</option>
+              </select>
+            </F>
+          </div>
+          <F label="Notlar"><textarea style={{...S.input,minHeight:70,resize:"vertical"}} value={formD.notlar} onChange={e=>setFormD({...formD,notlar:e.target.value})}/></F>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+// ─── ANA UYGULAMA ─────────────────────────────────────────────────────────────
+export default function App(){
+  const [sekme,setSekme]=useState("ozet");
+  const [hayvanlar,setHayvanlar]=useState([]);
+  const [islemler,setIslemler]=useState([]);
+  const [rasyonlar,setRasyonlar]=useState([]);
+  const [saglik,setSaglik]=useState([]);
+  const [dogumlar,setDogumlar]=useState([]);
+  const [dollenme,setDollenme]=useState([]);
+  const [agirlikGecmisi,setAgirlikGecmisi]=useState([]);
+  const [yukleniyor,setYukleniyor]=useState(true);
+
+  useEffect(()=>{
+    (async()=>{
+      const [h,i,r,s,d,dl,ag]=await Promise.all([
+        loadData(STORAGE_KEYS.hayvanlar),loadData(STORAGE_KEYS.islemler),
+        loadData(STORAGE_KEYS.rasyonlar),loadData(STORAGE_KEYS.saglik),
+        loadData(STORAGE_KEYS.dogumlar),loadData(STORAGE_KEYS.dollenme),
+        loadData(STORAGE_KEYS.agirlikGecmisi),
+      ]);
+      setHayvanlar(h);setIslemler(i);setRasyonlar(r);setSaglik(s);setDogumlar(d);setDollenme(dl);setAgirlikGecmisi(ag);
+      setYukleniyor(false);
+    })();
+  },[]);
+
+  const sekmeler=[
+    {id:"ozet",l:"📊 Özet"},{id:"hayvanlar",l:"🐑 Hayvanlar"},{id:"gelirGider",l:"💰 Gelir/Gider"},
+    {id:"rasyonlar",l:"🌾 Rasyonlar"},{id:"saglik",l:"💉 Sağlık"},{id:"dogum",l:"🐣 Doğum"},
+  ];
+
+  if(yukleniyor)return(
+    <div style={{...S.app,display:"flex",alignItems:"center",justifyContent:"center"}}>
+      <div style={{textAlign:"center",color:R.metinAcik}}><div style={{fontSize:48,marginBottom:12}}>🐑</div><div>Yükleniyor...</div></div>
+    </div>
+  );
+
+  return(
+    <div style={S.app}>
+      <div style={S.header}>
+        <span style={{fontSize:28}}>🐑</span>
+        <div style={{flex:1}}>
+          <div style={{fontWeight:"700",fontSize:18}}>{APP_ADI}</div>
+          <div style={{fontSize:12,opacity:0.8}}>{hayvanlar.length} hayvan kayıtlı</div>
+        </div>
+        <button onClick={()=>exportExcel(hayvanlar,islemler,saglik,dogumlar,dollenme,rasyonlar)} style={{background:"rgba(255,255,255,0.2)",color:"#fff",border:"none",borderRadius:7,padding:"7px 12px",cursor:"pointer",fontFamily:"inherit",fontSize:12}}>📤 Excel</button>
+      </div>
+      <nav style={S.nav}>
+        {sekmeler.map(s=><button key={s.id} style={S.navBtn(sekme===s.id)} onClick={()=>setSekme(s.id)}>{s.l}</button>)}
+      </nav>
+      <div style={S.content}>
+        {sekme==="ozet"&&<Ozet hayvanlar={hayvanlar} islemler={islemler} saglik={saglik} dogumlar={dogumlar} dollenme={dollenme} rasyonlar={rasyonlar}/>}
+        {sekme==="hayvanlar"&&<HayvanKayitlari hayvanlar={hayvanlar} setHayvanlar={setHayvanlar} agirlikGecmisi={agirlikGecmisi} setAgirlikGecmisi={setAgirlikGecmisi}/>}
+        {sekme==="gelirGider"&&<GelirGider islemler={islemler} setIslemler={setIslemler}/>}
+        {sekme==="rasyonlar"&&<BeslemeRasyonlari rasyonlar={rasyonlar} setRasyonlar={setRasyonlar}/>}
+        {sekme==="saglik"&&<SaglikTakibi saglik={saglik} setSaglik={setSaglik} hayvanlar={hayvanlar}/>}
+        {sekme==="dogum"&&<DogumTakibi dogumlar={dogumlar} setDogumlar={setDogumlar} dollenme={dollenme} setDollenme={setDollenme} hayvanlar={hayvanlar}/>}
+      </div>
+    </div>
+  );
+}
