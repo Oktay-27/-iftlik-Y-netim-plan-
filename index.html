@@ -31,78 +31,83 @@
           agirlikGecmisi: "koyun_agirlik",
         };
 
-        // GitHub Pages veya yerel çalışma için localStorage fallback'li veri yükleme/kaydetme
-        const loadData = async (key) => {
+        const bugun = new Date().toISOString().split("T")[0];
+
+        // 1. RENK PALETİ (En üstte olmalı)
+        const R = {
+          zemin: "#F7F3EE", kart: "#FFFFFF", birincil: "#5C7A4E", ikincil: "#8FAF7E",
+          vurgu: "#C87137", metin: "#2C2416", metinAcik: "#7A6B55", sinir: "#E2D9CD",
+          tehlike: "#C0392B", uyari: "#E67E22",
+        };
+
+        // 2. STİL OBJESİ
+        const S = {
+          app: { minHeight: "100vh", background: R.zemin, fontFamily: "'Georgia',serif", color: R.metin },
+          header: { background: R.birincil, color: "#fff", padding: "16px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", boxShadow: "0 2px 8px rgba(0,0,0,0.15)" },
+          nav: { background: "#fff", borderBottom: `1px solid ${R.sinir}`, display: "flex", overflowX: "auto", padding: "0 16px" },
+          navBtn: (a) => ({ padding: "12px 14px", border: "none", background: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: a ? "700" : "400", color: a ? R.birincil : R.metinAcik, borderBottom: a ? `3px solid ${R.birincil}` : "3px solid transparent", whiteSpace: "nowrap" }),
+          content: { padding: "20px 16px", maxWidth: 900, margin: "0 auto" },
+          card: { background: R.kart, borderRadius: 10, border: `1px solid ${R.sinir}`, padding: 20, marginBottom: 16, boxShadow: "0 1px 4px rgba(0,0,0,0.06)" },
+          row: { display: "flex", justifyType: "space-between", justifyContent: "space-between", alignItems: "center", marginBottom: 16 },
+          h2: { margin: 0, fontSize: 18 },
+          btnP: { background: R.birincil, color: "#fff", border: "none", borderRadius: 7, padding: "9px 18px", cursor: "pointer", fontFamily: "inherit", fontSize: 14, fontWeight: "600" },
+          btnS: { background: R.sinir, color: R.metin, border: "none", borderRadius: 7, padding: "7px 14px", cursor: "pointer", fontFamily: "inherit", fontSize: 13 },
+          btnD: { background: R.tehlike, color: "#fff", border: "none", borderRadius: 7, padding: "7px 14px", cursor: "pointer", fontFamily: "inherit", fontSize: 13 },
+          input: { width: "100%", padding: "9px 12px", border: `1px solid ${R.sinir}`, borderRadius: 7, fontFamily: "inherit", fontSize: 14, background: R.zemin, color: R.metin, boxSizing: "border-box" },
+          label: { display: "block", fontSize: 12, fontWeight: "600", color: R.metinAcik, marginBottom: 4, textTransform: "uppercase", letterSpacing: 0.5 },
+          g2: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 },
+          g3: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 },
+          table: { width: "100%", borderCollapse: "collapse", fontSize: 14 },
+          th: { textAlign: "left", padding: "10px 12px", background: R.zemin, borderBottom: `2px solid ${R.sinir}`, fontSize: 12, fontWeight: "700", color: R.metinAcik, textTransform: "uppercase", letterSpacing: 0.4 },
+          td: { padding: "10px 12px", borderBottom: `1px solid ${R.sinir}`, verticalAlign: "middle" },
+          badge: (c) => ({ display: "inline-block", padding: "3px 10px", borderRadius: 20, fontSize: 12, fontWeight: "600", background: c + "22", color: c }),
+          modal: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyType: "center", justifyContent: "center", zIndex: 1000, padding: 16 },
+          modalBox: { background: "#fff", borderRadius: 12, padding: 24, width: "100%", maxWidth: 560, maxHeight: "90vh", overflowY: "auto", boxShadow: "0 8px 32px rgba(0,0,0,0.18)" },
+          sayac: (c) => ({ background: c, borderRadius: 12, padding: "16px 20px", textAlign: "center", minWidth: 80 }),
+          sayacRakam: { fontSize: 42, fontWeight: "900", color: "#fff", lineHeight: 1 },
+          sayacEtiket: { fontSize: 11, color: "rgba(255,255,255,0.85)", marginTop: 4, textTransform: "uppercase", letterSpacing: 0.5 }
+        };
+
+        // 3. YARDIMCI FONKSİYONLAR
+        function loadData(key) {
           try { 
-            if (window.storage && typeof window.storage.get === 'function') {
-              const r = await window.storage.get(key); 
-              return r ? JSON.parse(r.value) : []; 
-            }
             const local = localStorage.getItem(key);
             return local ? JSON.parse(local) : [];
-          } catch { return []; }
-        };
+          } catch(e) { 
+            return []; 
+          }
+        }
 
-        const saveData = async (key, data) => {
+        function saveData(key, data) {
           try { 
-            if (window.storage && typeof window.storage.set === 'function') {
-              await window.storage.set(key, JSON.stringify(data)); 
-              return;
-            }
             localStorage.setItem(key, JSON.stringify(data));
-          } catch (e) { console.error(e); }
-        };
+          } catch (e) {}
+        }
 
-        const bugun = new Date().toISOString().split("T")[0];
-        const tahminiDogumHesapla = (d) => { if (!d) return ""; const dt = new Date(d); dt.setDate(dt.getDate()+150); return dt.toISOString().split("T")[0]; };
-        const kalanGun = (t) => { if (!t) return null; return Math.ceil((new Date(t).setHours(0,0,0,0) - new Date().setHours(0,0,0,0))/(1000*60*60*24)); };
+        function tahminiDogumHesapla(d) { 
+          if (!d) return ""; 
+          const dt = new Date(d); 
+          dt.setDate(dt.getDate() + 150); 
+          return dt.toISOString().split("T")[0]; 
+        }
 
-        const R = {
-          zemin:"#F7F3EE", kart:"#FFFFFF", birincil:"#5C7A4E", ikincil:"#8FAF7E",
-          vurgu:"#C87137", metin:"#2C2416", metinAcik:"#7A6B55", sinir:"#E2D9CD",
-          tehlike:"#C0392B", uyari:"#E67E22",
-        };
+        function kalanGun(t) { 
+          if (!t) return null; 
+          return Math.ceil((new Date(t).setHours(0,0,0,0) - new Date().setHours(0,0,0,0)) / (1000 * 60 * 60 * 24)); 
+        }
 
-        const S = {
-          app:{minHeight:"100vh",background:R.zemin,fontFamily:"'Georgia',serif",color:R.metin},
-          header:{background:R.birincil,color:"#fff",padding:"16px 24px",display:"flex",alignItems:"center",justifyContent:"space-between",boxShadow:"0 2px 8px rgba(0,0,0,0.15)"},
-          nav:{background:"#fff",borderBottom:`1px solid ${R.sinir}`,display:"flex",overflowX:"auto",padding:"0 16px"},
-          navBtn:(a)=>({padding:"12px 14px",border:"none",background:"none",cursor:"pointer",fontFamily:"inherit",fontSize:13,fontWeight:a?"700":"400",color:a?R.birincil:R.metinAcik,borderBottom:a?`3px solid ${R.birincil}`:"3px solid transparent",whiteSpace:"nowrap"}),
-          content:{padding:"20px 16px",maxWidth:900,margin:"0 auto"},
-          card:{background:R.kart,borderRadius:10,border:`1px solid ${R.sinir}`,padding:20,marginBottom:16,boxShadow:"0 1px 4px rgba(0,0,0,0.06)"},
-          row:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16},
-          h2:{margin:0,fontSize:18},
-          btnP:{background:R.birincil,color:"#fff",border:"none",borderRadius:7,padding:"9px 18px",cursor:"pointer",fontFamily:"inherit",fontSize:14,fontWeight:"600"},
-          btnS:{background:R.sinir,color:R.metin,border:"none",borderRadius:7,padding:"7px 14px",cursor:"pointer",fontFamily:"inherit",fontSize:13},
-          btnD:{background:R.tehlike,color:"#fff",border:"none",borderRadius:7,padding:"7px 14px",cursor:"pointer",fontFamily:"inherit",fontSize:13},
-          input:{width:"100%",padding:"9px 12px",border:`1px solid ${R.sinir}`,borderRadius:7,fontFamily:"inherit",fontSize:14,background:R.zemin,color:R.metin,boxSizing:"border-box"},
-          label:{display:"block",fontSize:12,fontWeight:"600",color:R.metinAcik,marginBottom:4,textTransform:"uppercase",letterSpacing:0.5},
-          g2:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12},
-          g3:{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12},
-          table:{width:"100%",borderCollapse:"collapse",fontSize:14},
-          th:{textAlign:"left",padding:"10px 12px",background:R.zemin,borderBottom:`2px solid ${R.sinir}`,fontSize:12,fontWeight:"700",color:R.metinAcik,textTransform:"uppercase",letterSpacing:0.4},
-          td:{padding:"10px 12px",borderBottom:`1px solid ${R.sinir}`,verticalAlign:"middle"},
-          badge:(c)=>({display:"inline-block",padding:"3px 10px",borderRadius:20,fontSize:12,fontWeight:"600",background:c+"22",color:c}),
-          modal:{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000,padding:16},
-          modalBox:{background:"#fff",borderRadius:12,padding:24,width:"100%",maxWidth:560,maxHeight:"90vh",overflowY:"auto",boxShadow:"0 8px 32px rgba(0,0,0,0.18)"},
-          alert:(c)=>({background:c+"18",border:`1px solid ${c}44`,borderRadius:8,padding:"10px 14px",marginBottom:10,display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:14}),
-          sayac:(c)=>({background:c,borderRadius:12,padding:"16px 20px",textAlign:"center",minWidth:80}),
-          sayacRakam:{fontSize:42,fontWeight:"900",color:"#fff",lineHeight:1},
-          sayacEtiket:{fontSize:11,color:"rgba(255,255,255,0.85)",marginTop:4,textTransform:"uppercase",letterSpacing:0.5},
-        };
+        function F({label, children}){ return <div style={{marginBottom:12}}><label style={S.label}>{label}</label>{children}</div>; }
 
-        function F({label,children}){return <div style={{marginBottom:12}}><label style={S.label}>{label}</label>{children}</div>;}
-
-        function Modal({title,onClose,onSave,children}){
+        function Modal({title, onClose, onSave, children}){
           return(
-            <div style={S.modal} onClick={e=>e.target===e.currentTarget&&onClose()}>
+            <div style={S.modal} onClick={e => e.target === e.currentTarget && onClose()}>
               <div style={S.modalBox}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+                <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20}}>
                   <h3 style={{margin:0}}>{title}</h3>
-                  <button onClick={onClose} style={{background:"none",border:"none",fontSize:22,cursor:"pointer",color:R.metinAcik}}>×</button>
+                  <button onClick={onClose} style={{background:"none", border:"none", fontSize:22, cursor:"pointer", color:R.metinAcik}}>×</button>
                 </div>
                 {children}
-                <div style={{display:"flex",gap:10,marginTop:20,justifyContent:"flex-end"}}>
+                <div style={{display:"flex", gap:10, marginTop:20, justifyContent:"flex-end"}}>
                   <button onClick={onClose} style={S.btnS}>İptal</button>
                   <button onClick={onSave} style={S.btnP}>Kaydet</button>
                 </div>
@@ -111,109 +116,107 @@
           );
         }
 
-        function GunSayaci({tarih,etiket}){
-          const gun=kalanGun(tarih);
-          if(gun===null) return null;
-          const c=gun<0?R.tehlike:gun<=7?R.tehlike:gun<=30?R.uyari:R.birincil;
-          const txt=gun<0?`${Math.abs(gun)} GÜN GEÇTİ`:gun===0?"BUGÜN!":gun===1?"YARIN":"";
+        function GunSayaci({tarih, etiket}){
+          const gun = kalanGun(tarih);
+          if(gun === null) return null;
+          const c = gun < 0 ? R.tehlike : gun <= 7 ? R.tehlike : gun <= 30 ? R.uyari : R.birincil;
+          const txt = gun < 0 ? `${Math.abs(gun)} GÜN GEÇTİ` : gun === 0 ? "BUGÜN!" : gun === 1 ? "YARIN" : "";
           return(
             <div style={S.sayac(c)}>
-              {gun>1?<div style={S.sayacRakam}>{gun}</div>:<div style={{...S.sayacRakam,fontSize:26}}>{txt}</div>}
-              {gun>1&&<div style={{fontSize:13,color:"rgba(255,255,255,0.9)",fontWeight:"700"}}>GÜN</div>}
+              {gun > 1 ? <div style={S.sayacRakam}>{gun}</div> : <div style={{...S.sayacRakam, fontSize:26}}>{txt}</div>}
+              {gun > 1 && <div style={{fontSize:13, color:"rgba(255,255,255,0.9)", fontWeight:"700"}}>GÜN</div>}
               <div style={S.sayacEtiket}>{etiket}</div>
             </div>
           );
         }
 
         function KalanBadge({tarih}){
-          const gun=kalanGun(tarih);
-          if(gun===null) return <span style={{color:R.metinAcik}}>-</span>;
-          const c=gun<0?R.tehlike:gun<=7?R.tehlike:gun<=30?R.uyari:R.birincil;
-          const txt=gun<0?`${Math.abs(gun)} gün geçti`:gun===0?"Bugün!":gun===1?"Yarın":`${gun} gün kaldı`;
+          const gun = kalanGun(tarih);
+          if(gun === null) return <span style={{color:R.metinAcik}}>-</span>;
+          const c = gun < 0 ? R.tehlike : gun <= 7 ? R.tehlike : gun <= 30 ? R.uyari : R.birincil;
+          const txt = gun < 0 ? `${Math.abs(gun)} gün geçti` : gun === 0 ? "Bugün!" : gun === 1 ? "Yarın" : `${gun} gün kaldı`;
           return <span style={S.badge(c)}>{txt}</span>;
         }
 
-        function exportExcel(hayvanlar,islemler,saglik,dogumlar,dollenme,rasyonlar){
-          const rows=[];
-          rows.push(["=== HAYVAN KAYITLARI ==="]);
-          rows.push(["Kupe No","Isim","Cins","Yas","Cinsiyet","Agirlik"]);
-          hayvanlar.forEach(h=>rows.push([h.kupeNo,h.isim,h.cins,h.yas,h.cinsiyet,h.agirlik]));
-          rows.push([]);
-          rows.push(["=== GELIR/GIDER ==="]);
-          rows.push(["Tarih","Tip","Kategori","Tutar","Aciklama"]);
-          islemler.forEach(i=>rows.push([i.tarih,i.tip,i.kategori,i.tutar,i.aciklama]));
-          rows.push([]);
-          rows.push(["=== DOLLENME ==="]);
-          rows.push(["Kupe No","Dollenme","Tahmini Dogum","Kalan Gun"]);
-          dollenme.forEach(d=>rows.push([d.kupeNo,d.dollenme,d.tahminiDogum,kalanGun(d.tahminiDogum)]));
-          const csv=rows.map(r=>r.map(c=>`"${c??""}"`).join(",")).join("\n");
-          const blob=new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8;"});
-          const url=URL.createObjectURL(blob);
-          const a=document.createElement("a"); a.href=url; a.download="ciftlik.csv"; a.click();
+        function exportExcel(hayvanlar, islemler, saglik, dogumlar, dollenme, rasyonlar){
+          const rows = [
+            ["=== HAYVAN KAYITLARI ==="],
+            ["Kupe No", "Isim", "Cins", "Yas", "Cinsiyet", "Agirlik"]
+          ];
+          hayvanlar.forEach(h => rows.push([h.kupeNo, h.isim, h.cins, h.yas, h.cinsiyet, h.agirlik]));
+          rows.push([], ["=== GELIR/GIDER ==="], ["Tarih", "Tip", "Kategori", "Tutar", "Aciklama"]);
+          islemler.forEach(i => rows.push([i.tarih, i.tip, i.kategori, i.tutar, i.aciklama]));
+          rows.push([], ["=== DOLLENME ==="], ["Kupe No", "Dollenme", "Tahmini Dogum", "Kalan Gun"]);
+          dollenme.forEach(d => rows.push([d.kupeNo, d.dollenme, d.tahminiDogum, kalanGun(d.tahminiDogum)]));
+          
+          const csv = rows.map(r => r.map(c => `"${c ?? ""}"`).join(",")).join("\n");
+          const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a"); a.href = url; a.download = "ciftlik.csv"; a.click();
         }
 
         // ─── ÖZET SEKMESİ ─────────────────────────────────────────────────────────────
-        function Ozet({hayvanlar,islemler,dogumlar,dollenme,rasyonlar,saglik}){
-          const gelir=islemler.filter(i=>i.tip==="Gelir").reduce((t,i)=>t+Number(i.tutar),0);
-          const gider=islemler.filter(i=>i.tip==="Gider").reduce((t,i)=>t+Number(i.tutar),0);
-          const buAy=new Date().toISOString().slice(0,7);
-          const buAyG=islemler.filter(i=>i.tip==="Gelir"&&i.tarih?.startsWith(buAy)).reduce((t,i)=>t+Number(i.tutar),0);
-          const buAyGi=islemler.filter(i=>i.tip==="Gider"&&i.tarih?.startsWith(buAy)).reduce((t,i)=>t+Number(i.tutar),0);
+        function Ozet({hayvanlar, islemler, dogumlar, dollenme, rasyonlar, saglik}){
+          const gelir = islemler.filter(i => i.tip === "Gelir").reduce((t, i) => t + Number(i.tutar), 0);
+          const gider = islemler.filter(i => i.tip === "Gider").reduce((t, i) => t + Number(i.tutar), 0);
+          const buAy = new Date().toISOString().slice(0, 7);
+          const buAyG = islemler.filter(i => i.tip === "Gelir" && i.tarih?.startsWith(buAy)).reduce((t, i) => t + Number(i.tutar), 0);
+          const buAyGi = islemler.filter(i => i.tip === "Gider" && i.tarih?.startsWith(buAy)).reduce((t, i) => t + Number(i.tutar), 0);
 
-          const aylar=[];
-          for(let i=5;i>=0;i--){
-            const d=new Date(); d.setMonth(d.getMonth()-i);
-            const key=d.toISOString().slice(0,7);
-            const ad=d.toLocaleString("tr-TR",{month:"short"});
-            const g=islemler.filter(x=>x.tip==="Gelir"&&x.tarih?.startsWith(key)).reduce((t,x)=>t+Number(x.tutar),0);
-            const gi=islemler.filter(x=>x.tip==="Gider"&&x.tarih?.startsWith(key)).reduce((t,x)=>t+Number(x.tutar),0);
-            aylar.push({ad,g,gi});
+          const aylar = [];
+          for(let i = 5; i >= 0; i--){
+            const d = new Date(); d.setMonth(d.getMonth() - i);
+            const key = d.toISOString().slice(0, 7);
+            const ad = d.toLocaleString("tr-TR", { month: "short" });
+            const g = islemler.filter(x => x.tip === "Gelir" && x.tarih?.startsWith(key)).reduce((t, x) => t + Number(x.tutar), 0);
+            const gi = islemler.filter(x => x.tip === "Gider" && x.tarih?.startsWith(key)).reduce((t, x) => t + Number(x.tutar), 0);
+            aylar.push({ ad, g, gi });
           }
-          const maxVal=Math.max(...aylar.map(a=>Math.max(a.g,a.gi)),1);
+          const maxVal = Math.max(...aylar.map(a => Math.max(a.g, a.gi)), 1);
 
-          const yakDogum=dollenme.filter(d=>d.tahminiDogum).map(d=>({...d,kalan:kalanGun(d.tahminiDogum)})).filter(d=>d.kalan!==null&&d.kalan>=0&&d.kalan<=30).sort((a,b)=>a.kalan-b.kalan);
-          const yakRasyon=rasyonlar.filter(r=>r.sonrakiDegisim).map(r=>({...r,kalan:kalanGun(r.sonrakiDegisim)})).filter(r=>r.kalan!==null&&r.kalan>=0&&r.kalan<=14).sort((a,b)=>a.kalan-b.kalan);
-          const yakAsi=saglik.filter(s=>s.tekrarTarihi).map(s=>({...s,kalan:kalanGun(s.tekrarTarihi)})).filter(s=>s.kalan!==null&&s.kalan>=0&&s.kalan<=14).sort((a,b)=>a.kalan-b.kalan);
+          const yakDogum = dollenme.filter(d => d.tahminiDogum).map(d => ({ ...d, kalan: kalanGun(d.tahminiDogum) })).filter(d => d.kalan !== null && d.kalan >= 0 && d.kalan <= 30).sort((a, b) => a.kalan - b.kalan);
+          const yakRasyon = rasyonlar.filter(r => r.sonrakiDegisim).map(r => ({ ...r, kalan: kalanGun(r.sonrakiDegisim) })).filter(r => r.kalan !== null && r.kalan >= 0 && r.kalan <= 14).sort((a, b) => a.kalan - b.kalan);
+          const yakAsi = saglik.filter(s => s.tekrarTarihi).map(s => ({ ...s, kalan: kalanGun(s.tekrarTarihi) })).filter(s => s.kalan !== null && s.kalan >= 0 && s.kalan <= 14).sort((a, b) => a.kalan - b.kalan);
 
           return(
             <div>
-              <div style={{...S.card,background:`linear-gradient(135deg,${R.birincil} 0%,#3d5c32 100%)`,color:"#fff"}}>
-                <div style={{fontSize:15,fontWeight:"700",marginBottom:12,opacity:0.9}}>🌿 {APP_ADI}</div>
+              <div style={{ ...S.card, background: `linear-gradient(135deg,${R.birincil} 0%,#3d5c32 100%)`, color: "#fff" }}>
+                <div style={{ fontSize: 15, fontWeight: "700", marginBottom: 12, opacity: 0.9 }}>🌿 {APP_ADI}</div>
                 <div style={S.g3}>
-                  {[{s:hayvanlar.length,l:"Toplam Hayvan",c:"#fff"},{s:gelir.toLocaleString("tr-TR")+" ₺",l:"Toplam Gelir",c:"#A8D5A2"},{s:gider.toLocaleString("tr-TR")+" ₺",l:"Toplam Gider",c:"#FFAA80"}].map((x,i)=>(
-                    <div key={i} style={{textAlign:"center",padding:12}}>
-                      <div style={{fontSize:24,fontWeight:"700",color:x.c,margin:"4px 0"}}>{x.s}</div>
-                      <div style={{fontSize:12,color:"rgba(255,255,255,0.75)"}}>{x.l}</div>
+                  {[{ s: hayvanlar.length, l: "Toplam Hayvan", c: "#fff" }, { s: gelir.toLocaleString("tr-TR") + " ₺", l: "Toplam Gelir", c: "#A8D5A2" }, { s: gider.toLocaleString("tr-TR") + " ₺", l: "Toplam Gider", c: "#FFAA80" }].map((x, i) => (
+                    <div key={i} style={{ textAlign: "center", padding: 12 }}>
+                      <div style={{ fontSize: 24, fontWeight: "700", color: x.c, margin: "4px 0" }}>{x.s}</div>
+                      <div style={{ fontSize: 12, color: "rgba(255,255,255,0.75)" }}>{x.l}</div>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {yakDogum.length>0&&(
+              {yakDogum.length > 0 && (
                 <div style={S.card}>
-                  <div style={{fontWeight:"700",marginBottom:14,fontSize:15}}>🐣 Yaklaşan Doğumlar</div>
-                  <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
-                    {yakDogum.map((d,i)=>(
-                      <div key={i} style={{display:"flex",alignItems:"center",gap:12,background:R.zemin,borderRadius:10,padding:"12px 16px",flex:1,minWidth:180}}>
+                  <div style={{ fontWeight: "700", marginBottom: 14, fontSize: 15 }}>🐣 Yaklaşan Doğumlar</div>
+                  <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                    {yakDogum.map((d, i) => (
+                      <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, background: R.zemin, borderRadius: 10, padding: "12px 16px", flex: 1, minWidth: 180 }}>
                         <GunSayaci tarih={d.tahminiDogum} etiket="DOĞUMA KALAN"/>
-                        <div><div style={{fontWeight:"700",fontSize:15}}>{d.kupeNo}</div><div style={{fontSize:12,color:R.metinAcik}}>{d.tahminiDogum}</div></div>
+                        <div><div style={{ fontWeight: "700", fontSize: 15 }}>{d.kupeNo}</div><div style={{ fontSize: 12, color: R.metinAcik }}>{d.tahminiDogum}</div></div>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
 
-              {yakAsi.length>0&&(
+              {yakAsi.length > 0 && (
                 <div style={S.card}>
-                  <div style={{fontWeight:"700",marginBottom:14,fontSize:15}}>💉 Yaklaşan Aşı Tekrarları</div>
-                  <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
-                    {yakAsi.map((s,i)=>(
-                      <div key={i} style={{display:"flex",alignItems:"center",gap:12,background:R.zemin,borderRadius:10,padding:"12px 16px",flex:1,minWidth:180}}>
+                  <div style={{ fontWeight: "700", marginBottom: 14, fontSize: 15 }}>💉 Yaklaşan Aşı Tekrarları</div>
+                  <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                    {yakAsi.map((s, i) => (
+                      <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, background: R.zemin, borderRadius: 10, padding: "12px 16px", flex: 1, minWidth: 180 }}>
                         <GunSayaci tarih={s.tekrarTarihi} etiket="TEKRARA KALAN"/>
                         <div>
-                          <div style={{fontWeight:"700",fontSize:15}}>{s.kupeNo}</div>
-                          <div style={{fontSize:13,color:R.metinAcik}}>{s.tip}</div>
-                          <div style={{fontSize:12,color:R.metinAcik}}>{s.tekrarTarihi}</div>
+                          <div style={{ fontWeight: "700", fontSize: 15 }}>{s.kupeNo}</div>
+                          <div style={{ fontSize: 13, color: R.metinAcik }}>{s.tip}</div>
+                          <div style={{ fontSize: 12, color: R.metinAcik }}>{s.tekrarTarihi}</div>
                         </div>
                       </div>
                     ))}
@@ -221,14 +224,14 @@
                 </div>
               )}
 
-              {yakRasyon.length>0&&(
+              {yakRasyon.length > 0 && (
                 <div style={S.card}>
-                  <div style={{fontWeight:"700",marginBottom:14,fontSize:15}}>🌾 Rasyon Değişim Hatırlatması</div>
-                  <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
-                    {yakRasyon.map((r,i)=>(
-                      <div key={i} style={{display:"flex",alignItems:"center",gap:12,background:R.zemin,borderRadius:10,padding:"12px 16px",flex:1,minWidth:180}}>
+                  <div style={{ fontWeight: "700", marginBottom: 14, fontSize: 15 }}>🌾 Rasyon Değişim Hatırlatması</div>
+                  <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                    {yakRasyon.map((r, i) => (
+                      <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, background: R.zemin, borderRadius: 10, padding: "12px 16px", flex: 1, minWidth: 180 }}>
                         <GunSayaci tarih={r.sonrakiDegisim} etiket="DEĞİŞİME KALAN"/>
-                        <div><div style={{fontWeight:"700",fontSize:15}}>{r.isim}</div><div style={{fontSize:12,color:R.metinAcik}}>{r.hayvanGrubu}</div></div>
+                        <div><div style={{ fontWeight: "700", fontSize: 15 }}>{r.isim}</div><div style={{ fontSize: 12, color: R.metinAcik }}>{r.hayvanGrubu}</div></div>
                       </div>
                     ))}
                   </div>
@@ -236,42 +239,42 @@
               )}
 
               <div style={S.card}>
-                <div style={{fontWeight:"700",marginBottom:16,fontSize:15}}>📊 Son 6 Ay Gelir/Gider</div>
-                <div style={{display:"flex",alignItems:"flex-end",gap:8,height:120}}>
-                  {aylar.map((a,i)=>(
-                    <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
-                      <div style={{width:"100%",display:"flex",gap:2,alignItems:"flex-end",height:90}}>
-                        <div style={{flex:1,background:R.birincil,borderRadius:"3px 3px 0 0",height:`${(a.g/maxVal)*90}px`,minHeight:a.g>0?3:0}}/>
-                        <div style={{flex:1,background:R.vurgu,borderRadius:"3px 3px 0 0",height:`${(a.gi/maxVal)*90}px`,minHeight:a.gi>0?3:0}}/>
+                <div style={{ fontWeight: "700", marginBottom: 16, fontSize: 15 }}>📊 Son 6 Ay Gelir/Gider</div>
+                <div style={{ display: "flex", alignItems: "flex-end", gap: 8, height: 120 }}>
+                  {aylar.map((a, i) => (
+                    <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+                      <div style={{ width: "100%", display: "flex", gap: 2, alignItems: "flex-end", height: 90 }}>
+                        <div style={{ flex: 1, background: R.birincil, borderRadius: "3px 3px 0 0", height: `${(a.g / maxVal) * 90}px`, minHeight: a.g > 0 ? 3 : 0 }} />
+                        <div style={{ flex: 1, background: R.vurgu, borderRadius: "3px 3px 0 0", height: `${(a.gi / maxVal) * 90}px`, minHeight: a.gi > 0 ? 3 : 0 }} />
                       </div>
-                      <div style={{fontSize:11,color:R.metinAcik}}>{a.ad}</div>
+                      <div style={{ fontSize: 11, color: R.metinAcik }}>{a.ad}</div>
                     </div>
                   ))}
                 </div>
-                <div style={{display:"flex",gap:16,marginTop:8,fontSize:12}}>
-                  <span><span style={{display:"inline-block",width:10,height:10,background:R.birincil,borderRadius:2,marginRight:4}}/>Gelir</span>
-                  <span><span style={{display:"inline-block",width:10,height:10,background:R.vurgu,borderRadius:2,marginRight:4}}/>Gider</span>
+                <div style={{ display: "flex", gap: 16, marginTop: 8, fontSize: 12 }}>
+                  <span><span style={{ display: "inline-block", width: 10, height: 10, background: R.birincil, borderRadius: 2, marginRight: 4 }} />Gelir</span>
+                  <span><span style={{ display: "inline-block", width: 10, height: 10, background: R.vurgu, borderRadius: 2, marginRight: 4 }} />Gider</span>
                 </div>
               </div>
 
               <div style={S.g2}>
                 <div style={S.card}>
-                  <div style={{fontSize:13,fontWeight:"700",color:R.metinAcik,marginBottom:12,textTransform:"uppercase"}}>Bu Ay</div>
-                  {[["Gelir",buAyG,R.birincil],["Gider",buAyGi,R.vurgu]].map(([l,v,c])=>(
-                    <div key={l} style={{display:"flex",justifyContent:"space-between",marginBottom:8}}>
-                      <span style={{color:c}}>● {l}</span><strong>{v.toLocaleString("tr-TR")} ₺</strong>
+                  <div style={{ fontSize: 13, fontWeight: "700", color: R.metinAcik, marginBottom: 12, textTransform: "uppercase" }}>Bu Ay</div>
+                  {[["Gelir", buAyG, R.birincil], ["Gider", buAyGi, R.vurgu]].map(([l, v, c]) => (
+                    <div key={l} style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                      <span style={{ color: c }}>● {l}</span><strong>{v.toLocaleString("tr-TR")} ₺</strong>
                     </div>
                   ))}
-                  <div style={{borderTop:`1px solid ${R.sinir}`,paddingTop:8,display:"flex",justifyContent:"space-between"}}>
+                  <div style={{ borderTop: `1px solid ${R.sinir}`, paddingTop: 8, display: "flex", justifyContent: "space-between" }}>
                     <strong>Net Kâr</strong>
-                    <strong style={{color:(buAyG-buAyGi)>=0?R.birincil:R.tehlike}}>{(buAyG-buAyGi).toLocaleString("tr-TR")} ₺</strong>
+                    <strong style={{ color: (buAyG - buAyGi) >= 0 ? R.birincil : R.tehlike }}>{(buAyG - buAyGi).toLocaleString("tr-TR")} ₺</strong>
                   </div>
                 </div>
                 <div style={S.card}>
-                  <div style={{fontSize:13,fontWeight:"700",color:R.metinAcik,marginBottom:12,textTransform:"uppercase"}}>Sürü</div>
-                  {[["🐑 Dişi",hayvanlar.filter(h=>h.cinsiyet==="Dişi").length],["🐏 Erkek",hayvanlar.filter(h=>h.cinsiyet==="Erkek").length],["🔴 Gebe",dollenme.filter(d=>d.tahminiDogum&&kalanGun(d.tahminiDogum)>=0).length],["🐣 Toplam Yavru",dogumlar.reduce((t,d)=>t+Number(d.yavrular||0),0)]].map(([l,v])=>(
-                    <div key={l} style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
-                      <span style={{fontSize:13}}>{l}</span><strong>{v}</strong>
+                  <div style={{ fontSize: 13, fontWeight: "700", color: R.metinAcik, marginBottom: 12, textTransform: "uppercase" }}>Sürü</div>
+                  {[["🐑 Dişi", hayvanlar.filter(h => h.cinsiyet === "Dişi").length], ["🐏 Erkek", hayvanlar.filter(h => h.cinsiyet === "Erkek").length], ["🔴 Gebe", dollenme.filter(d => d.tahminiDogum && kalanGun(d.tahminiDogum) >= 0).length], ["🐣 Toplam Yavru", dogumlar.reduce((t, d) => t + Number(d.yavrular || 0), 0)]].map(([l, v]) => (
+                    <div key={l} style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                      <span style={{ fontSize: 13 }}>{l}</span><strong>{v}</strong>
                     </div>
                   ))}
                 </div>
@@ -281,61 +284,61 @@
         }
 
         // ─── HAYVAN SEKMESİ ───────────────────────────────────────────────────────────
-        function HayvanKayitlari({hayvanlar,setHayvanlar,agirlikGecmisi,setAgirlikGecmisi}){
-          const bos={kupeNo:"",isim:"",cins:"",yas:"",cinsiyet:"Dişi",agirlik:"",notlar:""};
-          const [modal,setModal]=useState(false);
-          const [modalAg,setModalAg]=useState(false);
-          const [secili,setSecili]=useState(null);
-          const [form,setForm]=useState(bos);
-          const [duzenle,setDuzenle]=useState(null);
-          const [arama,setArama]=useState("");
-          const [formAg,setFormAg]=useState({tarih:bugun,agirlik:""});
+        function HayvanKayitlari({hayvanlar, setHayvanlar, agirlikGecmisi, setAgirlikGecmisi}){
+          const bos = { kupeNo: "", isim: "", cins: "", yas: "", cinsiyet: "Dişi", agirlik: "", notlar: "" };
+          const [modal, setModal] = useState(false);
+          const [modalAg, setModalAg] = useState(false);
+          const [secili, setSecili] = useState(null);
+          const [form, setForm] = useState(bos);
+          const [duzenle, setDuzenle] = useState(null);
+          const [arama, setArama] = useState("");
+          const [formAg, setFormAg] = useState({ tarih: bugun, agirlik: "" });
 
-          const kaydet=async()=>{
-            if(!form.kupeNo)return alert("Küpe No zorunludur.");
-            const yeni=duzenle!==null?hayvanlar.map((h,i)=>i===duzenle?form:h):[...hayvanlar,{...form,id:Date.now()}];
-            setHayvanlar(yeni);await saveData(STORAGE_KEYS.hayvanlar,yeni);
-            setModal(false);setForm(bos);setDuzenle(null);
+          const kaydet = () => {
+            if(!form.kupeNo) return alert("Küpe No zorunludur.");
+            const yeni = duzenle !== null ? hayvanlar.map((h, i) => i === duzenle ? form : h) : [...hayvanlar, { ...form, id: Date.now() }];
+            setHayvanlar(yeni); saveData(STORAGE_KEYS.hayvanlar, yeni);
+            setModal(false); setForm(bos); setDuzenle(null);
           };
 
-          const sil=async(i)=>{
-            if(!confirm("Silmek istiyor musunuz?"))return;
-            const yeni=hayvanlar.filter((_,idx)=>idx!==i);
-            setHayvanlar(yeni);await saveData(STORAGE_KEYS.hayvanlar,yeni);
+          const sil = (i) => {
+            if(!confirm("Silmek istiyor musunuz?")) return;
+            const yeni = hayvanlar.filter((_, idx) => idx !== i);
+            setHayvanlar(yeni); saveData(STORAGE_KEYS.hayvanlar, yeni);
           };
 
-          const kaydetAg=async()=>{
-            if(!formAg.agirlik)return alert("Ağırlık giriniz.");
-            const yeni=[...agirlikGecmisi,{...formAg,kupeNo:secili.kupeNo,id:Date.now()}];
-            setAgirlikGecmisi(yeni);await saveData(STORAGE_KEYS.agirlikGecmisi,yeni);
-            setModalAg(false);setFormAg({tarih:bugun,agirlik:""});
+          const kaydetAg = () => {
+            if(!formAg.agirlik) return alert("Ağırlık giriniz.");
+              const yeni = [...agirlikGecmisi, { ...formAg, kupeNo: secili.kupeNo, id: Date.now() }];
+            setAgirlikGecmisi(yeni); saveData(STORAGE_KEYS.agirlikGecmisi, yeni);
+            setModalAg(false); setFormAg({ tarih: bugun, agirlik: "" });
           };
 
-          const filtreli=hayvanlar.filter(h=>h.kupeNo?.includes(arama)||h.isim?.toLowerCase().includes(arama.toLowerCase())||h.cins?.toLowerCase().includes(arama.toLowerCase()));
+          const filtreli = hayvanlar.filter(h => h.kupeNo?.includes(arama) || h.isim?.toLowerCase().includes(arama.toLowerCase()) || h.cins?.toLowerCase().includes(arama.toLowerCase()));
 
           return(
             <div>
               <div style={S.card}>
-                <div style={S.row}><h2 style={S.h2}>🐑 Hayvan Kayıtları</h2><button style={S.btnP} onClick={()=>{setForm(bos);setDuzenle(null);setModal(true);}}>+ Hayvan Ekle</button></div>
-                <input style={{...S.input,marginBottom:16}} placeholder="Ara..." value={arama} onChange={e=>setArama(e.target.value)}/>
-                {filtreli.length===0?<div style={{color:R.metinAcik,textAlign:"center",padding:32}}>Kayıt yok.</div>:(
-                  <div style={{overflowX:"auto"}}>
+                <div style={S.row}><h2 style={S.h2}>🐑 Hayvan Kayıtları</h2><button style={S.btnP} onClick={() => { setForm(bos); setDuzenle(null); setModal(true); }}>+ Hayvan Ekle</button></div>
+                <input style={{ ...S.input, marginBottom: 16 }} placeholder="Ara..." value={arama} onChange={e => setArama(e.target.value)}/>
+                {filtreli.length === 0 ? <div style={{ color: R.metinAcik, textAlign: "center", padding: 32 }}>Kayıt yok.</div> : (
+                  <div style={{ overflowX: "auto" }}>
                     <table style={S.table}>
-                      <thead><tr>{["Küpe No","İsim","Cins","Yaş","Cinsiyet","Ağırlık",""].map(h=><th key={h} style={S.th}>{h}</th>)}</tr></thead>
-                      <tbody>{filtreli.map((h,i)=>{
-                        const ag = agirlikGecmisi.filter(a=>a.kupeNo===h.kupeNo).sort((a,b)=>b.tarih.localeCompare(a.tarih));
+                      <thead><tr>{["Küpe No", "İsim", "Cins", "Yaş", "Cinsiyet", "Ağırlık", ""].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
+                      <tbody>{filtreli.map((h, i) => {
+                        const ag = agirlikGecmisi.filter(a => a.kupeNo === h.kupeNo).sort((a, b) => b.tarih.localeCompare(a.tarih));
                         return(
                           <tr key={i}>
                             <td style={S.td}><strong>{h.kupeNo}</strong></td>
-                            <td style={S.td}>{h.isim||"-"}</td>
-                            <td style={S.td}>{h.cins||"-"}</td>
-                            <td style={S.td}>{h.yas?`${h.yas} yaş`:"-"}</td>
-                            <td style={S.td}><span style={S.badge(h.cinsiyet==="Dişi"?R.birincil:R.vurgu)}>{h.cinsiyet}</span></td>
-                            <td style={S.td}>{ag[0]?`${ag[0].agirlik} kg`:h.agirlik?`${h.agirlik} kg`:"-"}</td>
-                            <td style={S.td}><div style={{display:"flex",gap:4}}>
-                              <button style={{...S.btnS,fontSize:12,padding:"5px 10px"}} onClick={()=>{setSecili(h);setModalAg(true);}}>⚖️</button>
-                              <button style={{...S.btnS,fontSize:12,padding:"5px 10px"}} onClick={()=>{setForm(h);setDuzenle(hayvanlar.indexOf(h));setModal(true);}}>✏️</button>
-                              <button style={{...S.btnD,fontSize:12,padding:"5px 10px"}} onClick={()=>sil(hayvanlar.indexOf(h))}>🗑</button>
+                            <td style={S.td}>{h.isim || "-"}</td>
+                            <td style={S.td}>{h.cins || "-"}</td>
+                            <td style={S.td}>{h.yas ? `${h.yas} yaş` : "-"}</td>
+                            <td style={S.td}><span style={S.badge(h.cinsiyet === "Dişi" ? R.birincil : R.vurgu)}>{h.cinsiyet}</span></td>
+                            <td style={S.td}>{ag[0] ? `${ag[0].agirlik} kg` : h.agirlik ? `${h.agirlik} kg` : "-"}</td>
+                            <td style={S.td}><div style={{ display: "flex", gap: 4 }}>
+                              <button style={{ ...S.btnS, fontSize: 12, padding: "5px 10px" }} onClick={() => { setSecili(h); setModalAg(true); }}>⚖️</button>
+                              <button style={{ ...S.btnS, fontSize: 12, padding: "5px 10px" }} onClick={() => { setForm(h); setDuzenle(hayvanlar.indexOf(h)); setModal(true); }}>✏️</button>
+                              <button style={{ ...S.btnD, fontSize: 12, padding: "5px 10px" }} onClick={() => sil(hayvanlar.indexOf(h))}>🗑</button>
                             </div></td>
                           </tr>
                         );
@@ -344,21 +347,21 @@
                   </div>
                 )}
               </div>
-              {modal&&(<Modal title={duzenle!==null?"Hayvanı Düzenle":"Yeni Hayvan"} onClose={()=>{setModal(false);setDuzenle(null);}} onSave={kaydet}>
+              {modal && (<Modal title={duzenle !== null ? "Hayvanı Düzenle" : "Yeni Hayvan"} onClose={() => { setModal(false); setDuzenle(null); }} onSave={kaydet}>
                 <div style={S.g2}>
-                  <F label="Küpe No *"><input style={S.input} value={form.kupeNo} onChange={e=>setForm({...form,kupeNo:e.target.value})}/></F>
-                  <F label="İsim"><input style={S.input} value={form.isim} onChange={e=>setForm({...form,isim:e.target.value})}/></F>
-                  <F label="Cins"><input style={S.input} value={form.cins} onChange={e=>setForm({...form,cins:e.target.value})} placeholder="Merinos, Akkaraman..."/></F>
-                  <F label="Yaş"><input style={S.input} type="number" value={form.yas} onChange={e=>setForm({...form,yas:e.target.value})}/></F>
-                  <F label="Cinsiyet"><select style={S.input} value={form.cinsiyet} onChange={e=>setForm({...form,cinsiyet:e.target.value})}><option>Dişi</option><option>Erkek</option></select></F>
-                  <F label="Ağırlık (kg)"><input style={S.input} type="number" value={form.agirlik} onChange={e=>setForm({...form,agirlik:e.target.value})}/></F>
+                  <F label="Küpe No *"><input style={S.input} value={form.kupeNo} onChange={e => setForm({ ...form, kupeNo: e.target.value })}/></F>
+                  <F label="İsim"><input style={S.input} value={form.isim} onChange={e => setForm({ ...form, isim: e.target.value })}/></F>
+                  <F label="Cins"><input style={S.input} value={form.cins} onChange={e => setForm({ ...form, cins: e.target.value })} placeholder="Merinos, Akkaraman..."/></F>
+                  <F label="Yaş"><input style={S.input} type="number" value={form.yas} onChange={e => setForm({ ...form, yas: e.target.value })}/></F>
+                  <F label="Cinsiyet"><select style={S.input} value={form.cinsiyet} onChange={e => setForm({ ...form, cinsiyet: e.target.value })}><option>Dişi</option><option>Erkek</option></select></F>
+                  <F label="Ağırlık (kg)"><input style={S.input} type="number" value={form.agirlik} onChange={e => setForm({ ...form, agirlik: e.target.value })}/></F>
                 </div>
-                <F label="Notlar"><textarea style={{...S.input,minHeight:70,resize:"vertical"}} value={form.notlar} onChange={e=>setForm({...form,notlar:e.target.value})}/></F>
+                <F label="Notlar"><textarea style={{ ...S.input, minHeight: 70, resize: "vertical" }} value={form.notlar} onChange={e => setForm({ ...form, notlar: e.target.value })}/></F>
               </Modal>)}
-              {modalAg&&secili&&(<Modal title={`⚖️ ${secili.kupeNo} Ağırlık Takibi`} onClose={()=>setModalAg(false)} onSave={kaydetAg}>
+              {modalAg && secili && (<Modal title={`⚖️ ${secili.kupeNo} Ağırlık Takibi`} onClose={() => setModalAg(false)} onSave={kaydetAg}>
                 <div style={S.g2}>
-                  <F label="Tarih"><input style={S.input} type="date" value={formAg.tarih} onChange={e=>setFormAg({...formAg,tarih:e.target.value})}/></F>
-                  <F label="Ağırlık (kg) *"><input style={S.input} type="number" value={formAg.agirlik} onChange={e=>setFormAg({...formAg,agirlik:e.target.value})}/></F>
+                  <F label="Tarih"><input style={S.input} type="date" value={formAg.tarih} onChange={e => setFormAg({ ...formAg, tarih: e.target.value })}/></F>
+                  <F label="Ağırlık (kg) *"><input style={S.input} type="number" value={formAg.agirlik} onChange={e => setFormAg({ ...formAg, agirlik: e.target.value })}/></F>
                 </div>
               </Modal>)}
             </div>
@@ -366,97 +369,97 @@
         }
 
         // ─── GELİR / GİDER SEKMESİ ────────────────────────────────────────────────────
-        function KasaIslemleri({islemler,setIslemler}){
-          const bos={tarih:bugun,tip:"Gider",kategori:"Yem",tutar:"",aciklama:""};
-          const [modal,setModal]=useState(false);
-          const [form,setForm]=useState(bos);
+        function KasaIslemleri({islemler, setIslemler}){
+          const bos = { tarih: bugun, tip: "Gider", kategori: "Yem", tutar: "", aciklama: "" };
+          const [modal, setModal] = useState(false);
+          const [form, setForm] = useState(bos);
 
-          const kaydet=async()=>{
+          const kaydet = () => {
             if(!form.tutar) return alert("Tutar giriniz.");
-            const yeni=[...islemler,{...form,id:Date.now()}];
-            setIslemler(yeni); await saveData(STORAGE_KEYS.islemler,yeni);
+            const yeni = [...islemler, { ...form, id: Date.now() }];
+            setIslemler(yeni); saveData(STORAGE_KEYS.islemler, yeni);
             setModal(false); setForm(bos);
           };
 
-          const sil=async(id)=>{
-            if(!confirm("Silmek istiyor musunuz?"))return;
-            const yeni=islemler.filter(i=>i.id!==id);
-            setIslemler(yeni); await saveData(STORAGE_KEYS.islemler,yeni);
+          const sil = (id) => {
+            if(!confirm("Silmek istiyor musunuz?")) return;
+            const yeni = islemler.filter(i => i.id !== id);
+            setIslemler(yeni); saveData(STORAGE_KEYS.islemler, yeni);
           };
 
           return(
             <div style={S.card}>
-              <div style={S.row}><h2 style={S.h2}>💰 Gelir / Gider Takibi</h2><button style={S.btnP} onClick={()=>setModal(true)}>+ İşlem Ekle</button></div>
-              <div style={{overflowX:"auto"}}>
+              <div style={S.row}><h2 style={S.h2}>💰 Gelir / Gider Takibi</h2><button style={S.btnP} onClick={() => setModal(true)}>+ İşlem Ekle</button></div>
+              <div style={{ overflowX: "auto" }}>
                 <table style={S.table}>
-                  <thead><tr>{["Tarih","Tip","Kategori","Tutar","Açıklama",""].map(h=><th key={h} style={S.th}>{h}</th>)}</tr></thead>
-                  <tbody>{islemler.map((i)=>(
+                  <thead><tr>{["Tarih", "Tip", "Kategori", "Tutar", "Açıklama", ""].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
+                  <tbody>{islemler.map((i) => (
                     <tr key={i.id}>
                       <td style={S.td}>{i.tarih}</td>
-                      <td style={S.td}><span style={S.badge(i.tip==="Gelir"?R.birincil:R.vurgu)}>{i.tip}</span></td>
+                      <td style={S.td}><span style={S.badge(i.tip === "Gelir" ? R.birincil : R.vurgu)}>{i.tip}</span></td>
                       <td style={S.td}>{i.kategori}</td>
                       <td style={S.td}><strong>{Number(i.tutar).toLocaleString("tr-TR")} ₺</strong></td>
-                      <td style={S.td}>{i.aciklama||"-"}</td>
-                      <td style={S.td}><button style={S.btnD} onClick={()=>sil(i.id)}>🗑</button></td>
+                      <td style={S.td}>{i.aciklama || "-"}</td>
+                      <td style={S.td}><button style={S.btnD} onClick={() => sil(i.id)}>🗑</button></td>
                     </tr>
                   ))}</tbody>
                 </table>
               </div>
-              {modal&&<Modal title="Yeni Finansal İşlem" onClose={()=>setModal(false)} onSave={kaydet}>
+              {modal && <Modal title="Yeni Finansal İşlem" onClose={() => setModal(false)} onSave={kaydet}>
                 <div style={S.g2}>
-                  <F label="Tarih"><input style={S.input} type="date" value={form.tarih} onChange={e=>setForm({...form,tarih:e.target.value})}/></F>
-                  <F label="İşlem Tipi"><select style={S.input} value={form.tip} onChange={e=>setForm({...form,tip:e.target.value})}><option>Gider</option><option>Gelir</option></select></F>
-                  <F label="Kategori"><input style={S.input} value={form.kategori} onChange={e=>setForm({...form,kategori:e.target.value})} placeholder="Yem, Veteriner, Satış..."/></F>
-                  <F label="Tutar (₺)"><input style={S.input} type="number" value={form.tutar} onChange={e=>setForm({...form,tutar:e.target.value})}/></F>
+                  <F label="Tarih"><input style={S.input} type="date" value={form.tarih} onChange={e => setForm({ ...form, tarih: e.target.value })}/></F>
+                  <F label="İşlem Tipi"><select style={S.input} value={form.tip} onChange={e => setForm({ ...form, tip: e.target.value })}><option>Gider</option><option>Gelir</option></select></F>
+                  <F label="Kategori"><input style={S.input} value={form.kategori} onChange={e => setForm({ ...form, kategori: e.target.value })} placeholder="Yem, Veteriner, Satış..."/></F>
+                  <F label="Tutar (₺)"><input style={S.input} type="number" value={form.tutar} onChange={e => setForm({ ...form, tutar: e.target.value })}/></F>
                 </div>
-                <F label="Açıklama"><input style={S.input} value={form.aciklama} onChange={e=>setForm({...form,aciklama:e.target.value})}/></F>
+                <F label="Açıklama"><input style={S.input} value={form.aciklama} onChange={e => setForm({ ...form, aciklama: e.target.value })}/></F>
               </Modal>}
             </div>
           );
         }
 
         // ─── DÖLLENME / GEBELİK SEKMESİ ───────────────────────────────────────────────
-        function DollenmeTakibi({dollenme,setDollenme,hayvanlar}){
-          const bos={kupeNo:"",dollenme:bugun,tahminiDogum:tahminiDogumHesapla(bugun),notlar:""};
-          const [modal,setModal]=useState(false);
-          const [form,setForm]=useState(bos);
+        function DollenmeTakibi({dollenme, setDollenme, hayvanlar}){
+          const bos = { kupeNo: "", dollenme: bugun, tahminiDogum: tahminiDogumHesapla(bugun), notlar: "" };
+          const [modal, setModal] = useState(false);
+          const [form, setForm] = useState(bos);
 
-          const tarihkur=(d)=>{ setForm({...form,dollenme:d,tahminiDogum:tahminiDogumHesapla(d)}); };
+          const tarihkur = (d) => { setForm({ ...form, dollenme: d, tahminiDogum: tahminiDogumHesapla(d) }); };
 
-          const kaydet=async()=>{
+          const kaydet = () => {
             if(!form.kupeNo) return alert("Küpe No seçiniz.");
-            const yeni=[...dollenme,{...form,id:Date.now()}];
-            setDollenme(yeni); await saveData(STORAGE_KEYS.dollenme,yeni);
+            const yeni = [...dollenme, { ...form, id: Date.now() }];
+            setDollenme(yeni); saveData(STORAGE_KEYS.dollenme, yeni);
             setModal(false); setForm(bos);
           };
 
-          const sil=async(id)=>{
-            if(!confirm("Silmek istiyor musunuz?"))return;
-            const yeni=dollenme.filter(d=>d.id!==id);
-            setDollenme(yeni); await saveData(STORAGE_KEYS.dollenme,yeni);
+          const sil = (id) => {
+            if(!confirm("Silmek istiyor musunuz?")) return;
+            const yeni = dollenme.filter(d => d.id !== id);
+            setDollenme(yeni); saveData(STORAGE_KEYS.dollenme, yeni);
           };
 
           return(
             <div style={S.card}>
-              <div style={S.row}><h2 style={S.h2}>🐏 Döllenme & Gebelik Takibi</h2><button style={S.btnP} onClick={()=>setModal(true)}>+ Koç Katımı / Gebelik</button></div>
-              <div style={{overflowX:"auto"}}>
+              <div style={S.row}><h2 style={S.h2}>🐏 Döllenme & Gebelik Takibi</h2><button style={S.btnP} onClick={() => setModal(true)}>+ Koç Katımı / Gebelik</button></div>
+              <div style={{ overflowX: "auto" }}>
                 <table style={S.table}>
-                  <thead><tr>{["Küpe No","Tarih","Tahmini Doğum","Durum",""].map(h=><th key={h} style={S.th}>{h}</th>)}</tr></thead>
-                  <tbody>{dollenme.map((d)=>(
+                  <thead><tr>{["Küpe No", "Tarih", "Tahmini Doğum", "Durum", ""].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
+                  <tbody>{dollenme.map((d) => (
                     <tr key={d.id}>
                       <td style={S.td}><strong>{d.kupeNo}</strong></td>
                       <td style={S.td}>{d.dollenme}</td>
                       <td style={S.td}>{d.tahminiDogum}</td>
                       <td style={S.td}><KalanBadge tarih={d.tahminiDogum}/></td>
-                      <td style={S.td}><button style={S.btnD} onClick={()=>sil(d.id)}>🗑</button></td>
+                      <td style={S.td}><button style={S.btnD} onClick={() => sil(d.id)}>🗑</button></td>
                     </tr>
                   ))}</tbody>
                 </table>
               </div>
-              {modal&&<Modal title="Gebelik / Döllenme Kaydı" onClose={()=>setModal(false)} onSave={kaydet}>
+              {modal && <Modal title="Gebelik / Döllenme Kaydı" onClose={() => setModal(false)} onSave={kaydet}>
                 <div style={S.g2}>
-                  <F label="Hayvan Seç (Dişi)"><select style={S.input} value={form.kupeNo} onChange={e=>setForm({...form,kupeNo:e.target.value})}><option value="">Seçiniz...</option>{hayvanlar.filter(h=>h.cinsiyet==="Dişi").map(h=><option key={h.kupeNo} value={h.kupeNo}>{h.kupeNo} - {h.isim}</option>)}</select></F>
-                  <F label="Döllenme Tarihi"><input style={S.input} type="date" value={form.dollenme} onChange={e=>tarihkur(e.target.value)}/></F>
+                  <F label="Hayvan Seç (Dişi)"><select style={S.input} value={form.kupeNo} onChange={e => setForm({ ...form, kupeNo: e.target.value })}><option value="">Seçiniz...</option>{hayvanlar.filter(h => h.cinsiyet === "Dişi").map(h => <option key={h.kupeNo} value={h.kupeNo}>{h.kupeNo} - {h.isim}</option>)}</select></F>
+                  <F label="Döllenme Tarihi"><input style={S.input} type="date" value={form.dollenme} onChange={e => tarihkur(e.target.value)}/></F>
                   <F label="Tahmini Doğum (+150 Gün)"><input style={S.input} type="date" value={form.tahminiDogum} readOnly/></F>
                 </div>
               </Modal>}
@@ -465,43 +468,43 @@
         }
 
         // ─── SAĞLIK / VETERİNER SEKMESİ ───────────────────────────────────────────────
-        function SaglikIslemleri({saglik,setSaglik,hayvanlar}){
-          const bos={kupeNo:"",tarih:bugun,tip:"Aşı",ilacAd:"",tekrarTarihi:"",notlar:""};
-          const [modal,setModal]=useState(false);
-          const [form,setForm]=useState(bos);
+        function SaglikIslemleri({saglik, setSaglik, hayvanlar}){
+          const bos = { kupeNo: "", tarih: bugun, tip: "Aşı", ilacAd: "", tekrarTarihi: "", notlar: "" };
+          const [modal, setModal] = useState(false);
+          const [form, setForm] = useState(bos);
 
-          const kaydet=async()=>{
+          const kaydet = () => {
             if(!form.kupeNo) return alert("Küpe No seçiniz.");
-            const yeni=[...saglik,{...form,id:Date.now()}];
-            setSaglik(yeni); await saveData(STORAGE_KEYS.saglik,yeni);
+            const yeni = [...saglik, { ...form, id: Date.now() }];
+            setSaglik(yeni); saveData(STORAGE_KEYS.saglik, yeni);
             setModal(false); setForm(bos);
           };
 
           return(
             <div style={S.card}>
-              <div style={S.row}><h2 style={S.h2}>💉 Sağlık & Aşı Takibi</h2><button style={S.btnP} onClick={()=>setModal(true)}>+ Sağlık Kaydı</button></div>
-              <div style={{overflowX:"auto"}}>
+              <div style={S.row}><h2 style={S.h2}>💉 Sağlık & Aşı Takibi</h2><button style={S.btnP} onClick={() => setModal(true)}>+ Sağlık Kaydı</button></div>
+              <div style={{ overflowX: "auto" }}>
                 <table style={S.table}>
-                  <thead><tr>{["Küpe No","Tarih","Tip","İlaç/Uygulama","Tekrar Hatırlatması",""].map(h=><th key={h} style={S.th}>{h}</th>)}</tr></thead>
-                  <tbody>{saglik.map((s)=>(
+                  <thead><tr>{["Küpe No", "Tarih", "Tip", "İlaç/Uygulama", "Tekrar Hatırlatması", ""].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
+                  <tbody>{saglik.map((s) => (
                     <tr key={s.id}>
                       <td style={S.td}><strong>{s.kupeNo}</strong></td>
                       <td style={S.td}>{s.tarih}</td>
-                      <td style={S.td}><span style={S.badge(s.tip==="Aşı"?R.birincil:R.uyari)}>{s.tip}</span></td>
+                      <td style={S.td}><span style={S.badge(s.tip === "Aşı" ? R.birincil : R.uyari)}>{s.tip}</span></td>
                       <td style={S.td}>{s.ilacAd}</td>
-                      <td style={S.td}>{s.tekrarTarihi?<KalanBadge tarih={s.tekrarTarihi}/>:"-"}</td>
-                      <td style={S.td}><button style={S.btnD} onClick={async()=>{if(confirm("Silinsin mi?")){const y=saglik.filter(x=>x.id!==s.id); setSaglik(y); await saveData(STORAGE_KEYS.saglik,y);}}}>🗑</button></td>
+                      <td style={S.td}>{s.tekrarTarihi ? <KalanBadge tarih={s.tekrarTarihi}/> : "-"}</td>
+                      <td style={S.td}><button style={S.btnD} onClick={() => { if(confirm("Silinsin mi?")){ const y = saglik.filter(x => x.id !== s.id); setSaglik(y); saveData(STORAGE_KEYS.saglik, y); } }}>🗑</button></td>
                     </tr>
                   ))}</tbody>
                 </table>
               </div>
-              {modal&&<Modal title="Yeni Sağlık / Aşı Kaydı" onClose={()=>setModal(false)} onSave={kaydet}>
+              {modal && <Modal title="Yeni Sağlık / Aşı Kaydı" onClose={() => setModal(false)} onSave={kaydet}>
                 <div style={S.g2}>
-                  <F label="Hayvan"><select style={S.input} value={form.kupeNo} onChange={e=>setForm({...form,kupeNo:e.target.value})}><option value="">Seçiniz...</option>{hayvanlar.map(h=><option key={h.kupeNo} value={h.kupeNo}>{h.kupeNo}</option>)}</select></F>
-                  <F label="Uygulama Tarihi"><input style={S.input} type="date" value={form.tarih} onChange={e=>setForm({...form,tarih:e.target.value})}/></F>
-                  <F label="Tür"><select style={S.input} value={form.tip} onChange={e=>setForm({...form,tip:e.target.value})}><option>Aşı</option><option>Tedavi</option><option>Parazit</option><option>Bakım</option></select></F>
-                  <F label="İlaç / Uygulama Adı"><input style={S.input} value={form.ilacAd} onChange={e=>setForm({...form,ilacAd:e.target.value})}/></F>
-                  <F label="Tekrar Tarihi (Varsa)"><input style={S.input} type="date" value={form.tekrarTarihi} onChange={e=>setForm({...form,tekrarTarihi:e.target.value})}/></F>
+                  <F label="Hayvan"><select style={S.input} value={form.kupeNo} onChange={e => setForm({ ...form, kupeNo: e.target.value })}><option value="">Seçiniz...</option>{hayvanlar.map(h => <option key={h.kupeNo} value={h.kupeNo}>{h.kupeNo}</option>)}</select></F>
+                  <F label="Uygulama Tarihi"><input style={S.input} type="date" value={form.tarih} onChange={e => setForm({ ...form, tarih: e.target.value })}/></F>
+                  <F label="Tür"><select style={S.input} value={form.tip} onChange={e => setForm({ ...form, tip: e.target.value })}><option>Aşı</option><option>Tedavi</option><option>Parazit</option><option>Bakım</option></select></F>
+                  <F label="İlaç / Uygulama Adı"><input style={S.input} value={form.ilacAd} onChange={e => setForm({ ...form, ilacAd: e.target.value })}/></F>
+                  <F label="Tekrar Tarihi (Varsa)"><input style={S.input} type="date" value={form.tekrarTarihi} onChange={e => setForm({ ...form, tekrarTarihi: e.target.value })}/></F>
                 </div>
               </Modal>}
             </div>
@@ -509,92 +512,91 @@
         }
 
         // ─── DOĞUMLAR SEKMESİ ─────────────────────────────────────────────────────────
-        function DogumKayitlari({dogumlar,setDogumlar,hayvanlar}){
-          const bos={kupeNo:"",tarih:bugun,yavrular:"1",notlar:""};
-          const [modal,setModal]=useState(false);
-          const [form,setForm]=useState(bos);
+        function DogumKayitlari({dogumlar, setDogumlar, hayvanlar}){
+          const bos = { kupeNo: "", tarih: bugun, yavrular: "1", notlar: "" };
+          const [modal, setModal] = useState(false);
+          const [form, setForm] = useState(bos);
 
-          const kaydet=async()=>{
+          const kaydet = () => {
             if(!form.kupeNo) return alert("Ana Küpe No seçiniz.");
-            const yeni=[...dogumlar,{...form,id:Date.now()}];
-            setDogumlar(yeni); await saveData(STORAGE_KEYS.dogumlar,yeni);
+            const yeni = [...dogumlar, { ...form, id: Date.now() }];
+            setDogumlar(yeni); saveData(STORAGE_KEYS.dogumlar, yeni);
             setModal(false); setForm(bos);
           };
 
           return(
             <div style={S.card}>
-              <div style={S.row}><h2 style={S.h2}>🐣 Doğum Kayıtları</h2><button style={S.btnP} onClick={()=>setModal(true)}>+ Doğum Ekle</button></div>
-              <div style={{overflowX:"auto"}}>
+              <div style={S.row}><h2 style={S.h2}>🐣 Doğum Kayıtları</h2><button style={S.btnP} onClick={() => setModal(true)}>+ Doğum Ekle</button></div>
+              <div style={{ overflowX: "auto" }}>
                 <table style={S.table}>
-                  <thead><tr>{["Ana Küpe No","Doğum Tarihi","Yavru Sayısı","Notlar",""].map(h=><th key={h} style={S.th}>{h}</th>)}</tr></thead>
-                  <tbody>{dogumlar.map((d)=>(
+                  <thead><tr>{["Ana Küpe No", "Doğum Tarihi", "Yavru Sayısı", "Notlar", ""].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
+                  <tbody>{dogumlar.map((d) => (
                     <tr key={d.id}>
                       <td style={S.td}><strong>{d.kupeNo}</strong></td>
                       <td style={S.td}>{d.tarih}</td>
                       <td style={S.td}><span style={S.badge(R.birincil)}>{d.yavrular} Kuzu</span></td>
-                      <td style={S.td}>{d.notlar||"-"}</td>
-                      <td style={S.td}><button style={S.btnD} onClick={async()=>{if(confirm("Silinsin mi?")){const y=dogumlar.filter(x=>x.id!==d.id); setDogumlar(y); await saveData(STORAGE_KEYS.dogumlar,y);}}}>🗑</button></td>
+                      <td style={S.td}>{d.notlar || "-"}</td>
+                      <td style={S.td}><button style={S.btnD} onClick={() => { if(confirm("Silinsin mi?")){ const y = dogumlar.filter(x => x.id !== d.id); setDogumlar(y); saveData(STORAGE_KEYS.dogumlar, y); } }}>🗑</button></td>
                     </tr>
                   ))}</tbody>
                 </table>
               </div>
-              {modal&&<Modal title="Yeni Doğum Kaydı" onClose={()=>setModal(false)} onSave={kaydet}>
+              {modal && <Modal title="Yeni Doğum Kaydı" onClose={() => setModal(false)} onSave={kaydet}>
                 <div style={S.g3}>
-                  <F label="Ana Küpe No"><select style={S.input} value={form.kupeNo} onChange={e=>setForm({...form,kupeNo:e.target.value})}><option value="">Seçiniz...</option>{hayvanlar.filter(h=>h.cinsiyet==="Dişi").map(h=><option key={h.kupeNo} value={h.kupeNo}>{h.kupeNo}</option>)}</select></F>
-                  <F label="Doğum Tarihi"><input style={S.input} type="date" value={form.tarih} onChange={e=>setForm({...form,tarih:e.target.value})}/></F>
-                  <F label="Yavru Sayısı"><input style={S.input} type="number" min="1" value={form.yavrular} onChange={e=>setForm({...form,yavrular:e.target.value})}/></F>
+                  <F label="Ana Küpe No"><select style={S.input} value={form.kupeNo} onChange={e => setForm({ ...form, kupeNo: e.target.value })}><option value="">Seçiniz...</option>{hayvanlar.filter(h => h.cinsiyet === "Dişi").map(h => <option key={h.kupeNo} value={h.kupeNo}>{h.kupeNo}</option>)}</select></F>
+                  <F label="Doğum Tarihi"><input style={S.input} type="date" value={form.tarih} onChange={e => setForm({ ...form, tarih: e.target.value })}/></F>
+                  <F label="Yavru Sayısı"><input style={S.input} type="number" min="1" value={form.yavrular} onChange={e => setForm({ ...form, yavrular: e.target.value })}/></F>
                 </div>
-                <F label="Notlar"><input style={S.input} value={form.notlar} onChange={e=>setForm({...form,notlar:e.target.value})}/></F>
+                <F label="Notlar"><input style={S.input} value={form.notlar} onChange={e => setForm({ ...form, notlar: e.target.value })}/></F>
               </Modal>}
             </div>
           );
         }
 
         // ─── RASYON SEKMESİ ───────────────────────────────────────────────────────────
-        function RasyonYonetimi({rasyonlar,setRasyonlar}){
-          const bos={isim:"",hayvanGrubu:"",icerik:"",sonrakiDegisim:""};
-          const [modal,setModal]=useState(false);
-          const [form,setForm]=useState(bos);
+        function RasyonYonetimi({rasyonlar, setRasyonlar}){
+          const bos = { isim: "", hayvanGrubu: "", icerik: "", sonrakiDegisim: "" };
+          const [modal, setModal] = useState(false);
+          const [form, setForm] = useState(bos);
 
-          const kaydet=async()=>{
+          const kaydet = () => {
             if(!form.isim) return alert("Rasyon adı zorunludur.");
-            const yeni=[...rasyonlar,{...form,id:Date.now()}];
-            setRasyonlar(yeni); await saveData(STORAGE_KEYS.rasyonlar,yeni);
+            const yeni = [...rasyonlar, { ...form, id: Date.now() }];
+            setRasyonlar(yeni); saveData(STORAGE_KEYS.rasyonlar, yeni);
             setModal(false); setForm(bos);
           };
 
           return(
             <div style={S.card}>
-              <div style={S.row}><h2 style={S.h2}>🌾 Rasyon & Yem Reçeteleri</h2><button style={S.btnP} onClick={()=>setModal(true)}>+ Rasyon Reçetesi</button></div>
-              <div style={{overflowX:"auto"}}>
+              <div style={S.row}><h2 style={S.h2}>🌾 Rasyon & Yem Reçeteleri</h2><button style={S.btnP} onClick={() => setModal(true)}>+ Rasyon Reçetesi</button></div>
+              <div style={{ overflowX: "auto" }}>
                 <table style={S.table}>
-                  <thead><tr>{["Rasyon Adı","Grup","İçerik Detayı","Değişim Zamanı",""].map(h=><th key={h} style={S.th}>{h}</th>)}</tr></thead>
-                  <tbody>{rasyonlar.map((r)=>(
+                  <thead><tr>{["Rasyon Adı", "Grup", "İçerik Detayı", "Değişim Zamanı", ""].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
+                  <tbody>{rasyonlar.map((r) => (
                     <tr key={r.id}>
                       <td style={S.td}><strong>{r.isim}</strong></td>
                       <td style={S.td}>{r.hayvanGrubu}</td>
                       <td style={S.td}>{r.icerik}</td>
-                      <td style={S.td}>{r.sonrakiDegisim?<KalanBadge tarih={r.sonrakiDegisim}/>:"-"}</td>
-                      <td style={S.td}><button style={S.btnD} onClick={async()=>{if(confirm("Silinsin mi?")){const y=rasyonlar.filter(x=>x.id!==r.id); setRasyonlar(y); await saveData(STORAGE_KEYS.rasyonlar,y);}}}>🗑</button></td>
+                      <td style={S.td}>{r.sonrakiDegisim ? <KalanBadge tarih={r.sonrakiDegisim}/> : "-"}</td>
+                      <td style={S.td}><button style={S.btnD} onClick={() => { if(confirm("Silinsin mi?")){ const y = rasyonlar.filter(x => x.id !== r.id); setRasyonlar(y); saveData(STORAGE_KEYS.rasyonlar, y); } }}>🗑</button></td>
                     </tr>
                   ))}</tbody>
                 </table>
               </div>
-              {modal&&<Modal title="Yeni Rasyon Reçetesi" onClose={()=>setModal(false)} onSave={kaydet}>
+              {modal && <Modal title="Yeni Rasyon Reçetesi" onClose={() => setModal(false)} onSave={kaydet}>
                 <div style={S.g2}>
-                  <F label="Rasyon / Yem Adı"><input style={S.input} value={form.isim} onChange={e=>setForm({...form,isim:e.target.value})} placeholder="Besi Büyütme, Doğum Öncesi..."/></F>
-                  <F label="Uygulanan Hayvan Grubu"><input style={S.input} value={form.hayvanGrubu} onChange={e=>setForm({...form,hayvanGrubu:e.target.value})} placeholder="Kuzular, Gebe Koyunlar..."/></F>
+                  <F label="Rasyon / Yem Adı"><input style={S.input} value={form.isim} onChange={e => setForm({ ...form, isim: e.target.value })} placeholder="Besi Büyütme, Doğum Öncesi..."/></F>
+                  <F label="Uygulanan Hayvan Grubu"><input style={S.input} value={form.hayvanGrubu} onChange={e => setForm({ ...form, hayvanGrubu: e.target.value })} placeholder="Kuzular, Gebe Koyunlar..."/></F>
                 </div>
-                <F label="İçerik ve Karışım Oranları"><textarea style={{...S.input,minHeight:60}} value={form.icerik} onChange={e=>setForm({...form,icerik:e.target.value})} placeholder="Arpa %40, Yonca %30..."/></F>
-                <F label="Sonraki Rasyon Değişim Tarihi"><input style={S.input} type="date" value={form.sonrakiDegisim} onChange={e=>setForm({...form,sonrakiDegisim:e.target.value})}/></F>
+                <F label="İçerik ve Karışım Oranları"><textarea style={{ ...S.input, minHeight: 60 }} value={form.icerik} onChange={e => setForm({ ...form, icerik: e.target.value })} placeholder="Arpa %40, Yonca %30..."/></F>
+                <F label="Sonraki Rasyon Değişim Tarihi"><input style={S.input} type="date" value={form.sonrakiDegisim} onChange={e => setForm({ ...form, sonrakiDegisim: e.target.value })}/></F>
               </Modal>}
             </div>
           );
         }
 
         // ─── ANA BİLEŞEN (ROUTER & STATE YÖNETİMİ) ────────────────────────────────────
-        function App() {
-          const [sekme, setSekme] = useState("ozet");
+        function App() {const [sekme, setSekme] = useState("ozet");
           const [hayvanlar, setHayvanlar] = useState([]);
           const [islemler, setIslemler] = useState([]);
           const [rasyonlar, setRasyonlar] = useState([]);
@@ -604,36 +606,33 @@
           const [agirlikGecmisi, setAgirlikGecmisi] = useState([]);
 
           useEffect(() => {
-            async function verileriGetir() {
-              setHayvanlar(await loadData(STORAGE_KEYS.hayvanlar));
-              setIslemler(await loadData(STORAGE_KEYS.islemler));
-              setRasyonlar(await loadData(STORAGE_KEYS.rasyonlar));
-              setSaglik(await loadData(STORAGE_KEYS.saglik));
-              setDogumlar(await loadData(STORAGE_KEYS.dogumlar));
-              setDollenme(await loadData(STORAGE_KEYS.dollenme));
-              setAgirlikGecmisi(await loadData(STORAGE_KEYS.agirlikGecmisi));
-            }
-            verileriGetir();
+            setHayvanlar(loadData(STORAGE_KEYS.hayvanlar));
+            setIslemler(loadData(STORAGE_KEYS.islemler));
+            setRasyonlar(loadData(STORAGE_KEYS.rasyonlar));
+            setSaglik(loadData(STORAGE_KEYS.saglik));
+            setDogumlar(loadData(STORAGE_KEYS.dogumlar));
+            setDollenme(loadData(STORAGE_KEYS.dollenme));
+            setAgirlikGecmisi(loadData(STORAGE_KEYS.agirlikGecmisi));
           }, []);
 
           return (
             <div style={S.app}>
               <div style={S.header}>
-                <h2 style={{margin:0, fontSize:20}}>🚜 {APP_ADI}</h2>
-                <button style={S.btnS} onClick={()=>exportExcel(hayvanlar,islemler,saglik,dogumlar,dollenme,rasyonlar)}>📥 Excel (CSV) Çıktısı</button>
+                <h2 style={{ margin: 0, fontSize: 20 }}>🚜 {APP_ADI}</h2>
+                <button style={S.btnS} onClick={() => exportExcel(hayvanlar, islemler, saglik, dogumlar, dollenme, rasyonlar)}>📥 Excel (CSV) Çıktısı</button>
               </div>
 
               <div style={S.nav}>
                 {[
-                  {id:"ozet", l:"🌿 Özet"},
-                  {id:"hayvanlar", l:"🐑 Hayvan Kayıtları"},
-                  {id:"kasa", l:"💰 Gelir/Gider"},
-                  {id:"gebelik", l:"🐏 Döllenme & Gebelik"},
-                  {id:"saglik", l:"💉 Sağlık & Aşı"},
-                  {id:"dogum", l:"🐣 Doğumlar"},
-                  {id:"rasyon", l:"🌾 Rasyonlar"}
+                  { id: "ozet", l: "🌿 Özet" },
+                  { id: "hayvanlar", l: "🐑 Hayvan Kayıtları" },
+                  { id: "kasa", l: "💰 Gelir/Gider" },
+                  { id: "gebelik", l: "🐏 Döllenme & Gebelik" },
+                  { id: "saglik", l: "💉 Sağlık & Aşı" },
+                  { id: "dogum", l: "🐣 Doğumlar" },
+                  { id: "rasyon", l: "🌾 Rasyonlar" }
                 ].map(t => (
-                  <button key={t.id} style={S.navBtn(sekme===t.id)} onClick={()=>setSekme(t.id)}>{t.l}</button>
+                  <button key={t.id} style={S.navBtn(sekme === t.id)} onClick={() => setSekme(t.id)}>{t.l}</button>
                 ))}
               </div>
 
