@@ -26,7 +26,6 @@
           agirlikGecmisi: "koyun_agirlik",
         };
 
-        // GITHUB PAGES / TARAYICI UYUMLU ASENKRON VERİ TABANI BAĞLANTILARI
         const loadData = async (key) => {
           try { 
             const r = localStorage.getItem(key); 
@@ -57,7 +56,7 @@
           app:{minHeight:"100vh",background:R.zemin,fontFamily:"'Georgia',serif",color:R.metin},
           header:{background:R.birincil,color:"#fff",padding:"16px 24px",display:"flex",alignItems:"center",justifyContent:"space-between",boxShadow:"0 2px 8px rgba(0,0,0,0.15)"},
           nav:{background:"#fff",borderBottom:`1px solid ${R.sinir}`,display:"flex",overflowX:"auto",padding:"0 16px"},
-          navBtn:(a)=>({padding:"12px 14px",border:"none",background:"none",cursor:"pointer",fontFamily:"inherit",fontSize:13,fontWeight:a?"700":"400",color:a?R.birincil:R.metinAcik,borderBottom:a?`3px solid ${R.birincil}`:"3px solid transparent",whiteSpace:"nowrap"}),
+          navBtn:(a)=>({padding:"12px 14px",border:"none",background:"none",cursor:"pointer",fontFamily:"inherit",fontSize:14,fontWeight:a?"700":"400",color:a?R.birincil:R.metinAcik,borderBottom:a?`3px solid ${R.birincil}`:"3px solid transparent",whiteSpace:"nowrap"}),
           content:{padding:"20px 16px",maxWidth:900,margin:"0 auto"},
           card:{background:R.kart,borderRadius:10,border:`1px solid ${R.sinir}`,padding:20,marginBottom:16,boxShadow:"0 1px 4px rgba(0,0,0,0.06)"},
           row:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16},
@@ -78,7 +77,7 @@
           alert:(c)=>({background:c+"18",border:`1px solid ${c}44`,borderRadius:8,padding:"10px 14px",marginBottom:10,display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:14}),
           sayac:(c)=>({background:c,borderRadius:12,padding:"16px 20px",textAlign:"center",minWidth:80}),
           sayacRakam:{fontSize:42,fontWeight:"900",color:"#fff",lineHeight:1},
-          sayacEtiket:{fontSize:11,color:"rgba(255,255,255,0.85)",marginTop:4,textTransform:"uppercase",letterSpacing:0.5},
+          sayacEtiket:{fontSize:11,color:"rgba(255,255,255,0.75)"}
         };
 
         function F({label,children}){return <div style={{marginBottom:12}}><label style={S.label}>{label}</label>{children}</div>;}
@@ -423,22 +422,24 @@
           };
 
           return(
-            <div style={S.card}>
-              <div style={S.row}><h2 style={S.h2}>🐏 Döllenme & Gebelik Takibi</h2><button style={S.btnP} onClick={()=>setModal(true)}>+ Koç Katımı / Gebelik</button></div>
-              <div style={{overflowX:"auto"}}>
-                <table style={S.table}>
-                  <thead><tr>{["Küpe No", "Tarih", "Tahmini Doğum", "Durum", ""].map(h=><th key={h} style={S.th}>{h}</th>)}</tr></thead>
-                  <tbody>{dollenme.map((d)=>(
-                    <tr key={d.id}>
-                      <td style={S.td}><strong>{d.kupeNo}</strong></td>
-                      <td style={S.td}>{d.dollenme}</td>
-                      <td style={S.td}>{d.tahminiDogum}</td>
-                      <td style={S.td}><KalanBadge tarih={d.tahminiDogum}/></td>
-                      <td style={S.td}><button style={S.btnD} onClick={()=>sil(d.id)}>🗑</button></td>
-                    </tr>
-                  ))}</tbody>
-                </table>
-              </div>
+            <div>
+              <div style={S.row}><h2 style={S.h2}>🔴 Döllenme Kayıtları</h2><button style={S.btnP} onClick={()=>setModal(true)}>+ Döllenme Ekle</button></div>
+              {dollenme.length===0?<div style={{color:R.metinAcik,textAlign:"center",padding:32}}>Kayıt yok.</div>:(
+                <div style={{overflowX:"auto"}}>
+                  <table style={S.table}>
+                    <thead><tr>{["Küpe No", "Tarih", "Tahmini Doğum", "Durum", ""].map(h=><th key={h} style={S.th}>{h}</th>)}</tr></thead>
+                    <tbody>{dollenme.map((d)=>(
+                      <tr key={d.id}>
+                        <td style={S.td}><strong>{d.kupeNo}</strong></td>
+                        <td style={S.td}>{d.dollenme}</td>
+                        <td style={S.td}>{d.tahminiDogum}</td>
+                        <td style={S.td}><KalanBadge tarih={d.tahminiDogum}/></td>
+                        <td style={S.td}><button style={S.btnD} onClick={()=>sil(d.id)}>🗑</button></td>
+                      </tr>
+                    ))}</tbody>
+                  </table>
+                </div>
+              )}
               {modal&&<Modal title="Gebelik / Döllenme Kaydı" onClose={()=>setModal(false)} onSave={kaydet}>
                 <div style={S.g2}>
                   <F label="Hayvan Seç (Dişi)"><select style={S.input} value={form.kupeNo} onChange={e=>setForm({...form,kupeNo:e.target.value})}><option value="">Seçiniz...</option>{hayvanlar.filter(h=>h.cinsiyet==="Dişi").map(h=><option key={h.kupeNo} value={h.kupeNo}>{h.kupeNo} - {h.isim}</option>)}</select></F>
@@ -518,22 +519,24 @@
           };
 
           return(
-            <div style={S.card}>
+            <div>
               <div style={S.row}><h2 style={S.h2}>🐣 Doğum Kayıtları</h2><button style={S.btnP} onClick={()=>setModal(true)}>+ Doğum Ekle</button></div>
-              <div style={{overflowX:"auto"}}>
-                <table style={S.table}>
-                  <thead><tr>{["Ana Küpe No", "Doğum Tarihi", "Yavru Sayısı", "Notlar", ""].map(h=><th key={h} style={S.th}>{h}</th>)}</tr></thead>
-                  <tbody>{dogumlar.map((d)=>(
-                    <tr key={d.id}>
-                      <td style={S.td}><strong>{d.kupeNo}</strong></td>
-                      <td style={S.td}>{d.tarih}</td>
-                      <td style={S.td}><span style={S.badge(R.birincil)}>{d.yavrular} Kuzu</span></td>
-                      <td style={S.td}>{d.notlar||"-"}</td>
-                      <td style={S.td}><button style={S.btnD} onClick={()=>sil(d.id)}>🗑</button></td>
-                    </tr>
-                  ))}</tbody>
-                </table>
-              </div>
+              {dogumlar.length===0?<div style={{color:R.metinAcik,textAlign:"center",padding:32}}>Kayıt yok.</div>:(
+                <div style={{overflowX:"auto"}}>
+                  <table style={S.table}>
+                    <thead><tr>{["Ana Küpe No", "Doğum Tarihi", "Yavru Sayısı", "Notlar", ""].map(h=><th key={h} style={S.th}>{h}</th>)}</tr></thead>
+                    <tbody>{dogumlar.map((d)=>(
+                      <tr key={d.id}>
+                        <td style={S.td}><strong>{d.kupeNo}</strong></td>
+                        <td style={S.td}>{d.tarih}</td>
+                        <td style={S.td}><span style={S.badge(R.birincil)}>{d.yavrular} Kuzu</span></td>
+                        <td style={S.td}>{d.notlar||"-"}</td>
+                        <td style={S.td}><button style={S.btnD} onClick={()=>sil(d.id)}>🗑</button></td>
+                      </tr>
+                    ))}</tbody>
+                  </table>
+                </div>
+              )}
               {modal&&<Modal title="Yeni Doğum Kaydı" onClose={()=>setModal(false)} onSave={kaydet}>
                 <div style={S.g3}>
                   <F label="Ana Küpe No"><select style={S.input} value={form.kupeNo} onChange={e=>setForm({...form,kupeNo:e.target.value})}><option value="">Seçiniz...</option>{hayvanlar.filter(h=>h.cinsiyet==="Dişi").map(h=><option key={h.kupeNo} value={h.kupeNo}>{h.kupeNo}</option>)}</select></F>
@@ -595,6 +598,7 @@
 
         function App() {
           const [sekme, setSekme] = useState("ozet");
+          const [dogumAltSekme, setDogumAltSekme] = useState("gebelik"); // "gebelik" veya "dogumlar"
           const [hayvanlar, setHayvanlar] = useState([]);
           const [islemler, setIslemler] = useState([]);
           const [rasyonlar, setRasyonlar] = useState([]);
@@ -619,8 +623,14 @@
           return (
             <div style={S.app}>
               <div style={S.header}>
-                <h2 style={{ margin: 0, fontSize: 20 }}>🚜 {APP_ADI}</h2>
-                <button style={S.btnS} onClick={() => exportExcel(hayvanlar, islemler, saglik, dogumlar, dollenme, rasyonlar)}>📥 Excel (CSV) Çıktısı</button>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <span style={{ fontSize: 28 }}>🐑</span>
+                  <div>
+                    <h2 style={{ margin: 0, fontSize: 20, fontWeight: "700" }}>{APP_ADI}</h2>
+                    <div style={{ fontSize: 13, opacity: 0.85, marginTop: 2 }}>{hayvanlar.length} hayvan kayıtlı</div>
+                  </div>
+                </div>
+                <button style={{...S.btnS, background: "rgba(255,255,255,0.2)", color: "#fff", border: "none", display: "flex", alignItems: "center", gap: 6}} onClick={() => exportExcel(hayvanlar, islemler, saglik, dogumlar, dollenme, rasyonlar)}>🎂 Excel (CSV) Çıktısı</button>
               </div>
 
               <div style={S.nav}>
@@ -628,23 +638,46 @@
                   { id: "ozet", l: "🌿 Özet" },
                   { id: "hayvanlar", l: "🐑 Hayvan Kayıtları" },
                   { id: "kasa", l: "💰 Gelir/Gider" },
-                  { id: "gebelik", l: "🐏 Döllenme & Gebelik" },
-                  { id: "saglik", l: "💉 Sağlık & Aşı" },
-                  { id: "dogum", l: "🐣 Doğumlar" },
-                  { id: "rasyon", l: "🌾 Rasyonlar" }
+                  { id: "rasyon", l: "🌾 Rasyonlar" },
+                  { id: "saglik", l: "💉 Sağlık" },
+                  { id: "dogum_ust", l: "🐣 Doğum" }
                 ].map(t => (
                   <button key={t.id} style={S.navBtn(sekme === t.id)} onClick={() => setSekme(t.id)}>{t.l}</button>
-                ))}
+           
+))}
               </div>
 
               <div style={S.content}>
                 {sekme === "ozet" && <Ozet hayvanlar={hayvanlar} islemler={islemler} dogumlar={dogumlar} dollenme={dollenme} rasyonlar={rasyonlar} saglik={saglik} />}
                 {sekme === "hayvanlar" && <HayvanKayitlari hayvanlar={hayvanlar} setHayvanlar={setHayvanlar} agirlikGecmisi={agirlikGecmisi} setAgirlikGecmisi={setAgirlikGecmisi} />}
                 {sekme === "kasa" && <KasaIslemleri islemler={islemler} setIslemler={setIslemler} />}
-                {sekme === "gebelik" && <DollenmeTakibi dollenme={dollenme} setDollenme={setDollenme} hayvanlar={hayvanlar} />} 
-                {sekme === "saglik" && <SaglikIslemleri saglik={saglik} setSaglik={setSaglik} hayvanlar={hayvanlar} />}
-                {sekme === "dogum" && <DogumKayitlari dogumlar={dogumlar} setDogumlar={setDogumlar} hayvanlar={hayvanlar} />}
                 {sekme === "rasyon" && <RasyonYonetimi rasyonlar={rasyonlar} setRasyonlar={setRasyonlar} />}
+                {sekme === "saglik" && <SaglikIslemleri saglik={saglik} setSaglik={setSaglik} hayvanlar={hayvanlar} />}
+                
+                {sekme === "dogum_ust" && (
+                  <div>
+                    {/* Orijinal Tasarımdaki Alt İkili Sekme Buton Grubu */}
+                    <div style={{ display: "flex", background: "#fff", border: `1px solid ${R.sinir}`, borderRadius: 8, marginBottom: 16, overflow: "hidden" }}>
+                      <button 
+                        style={{ flex: 1, padding: "14px 16px", border: "none", fontSize: 14, fontWeight: "700", cursor: "pointer", transition: "0.2s", background: dogumAltSekme === "gebelik" ? R.birincil : "#fff", color: dogumAltSekme === "gebelik" ? "#fff" : R.metin }}
+                        onClick={() => setDogumAltSekme("gebelik")}
+                      >
+                        🔴 Döllenme & Gebelik
+                      </button>
+                      <button 
+                        style={{ flex: 1, padding: "14px 16px", border: "none", fontSize: 14, fontWeight: "700", cursor: "pointer", transition: "0.2s", background: dogumAltSekme === "dogumlar" ? R.birincil : "#fff", color: dogumAltSekme === "dogumlar" ? "#fff" : R.metin }}
+                        onClick={() => setDogumAltSekme("dogumlar")}
+                      >
+                        🐣 Doğum Kayıtları
+                      </button>
+                    </div>
+
+                    <div style={S.card}>
+                      {dogumAltSekme === "gebelik" && <DollenmeTakibi dollenme={dollenme} setDollenme={setDollenme} hayvanlar={hayvanlar} />}
+                      {dogumAltSekme === "dogumlar" && <DogumKayitlari dogumlar={dogumlar} setDogumlar={setDogumlar} hayvanlar={hayvanlar} />}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           );
