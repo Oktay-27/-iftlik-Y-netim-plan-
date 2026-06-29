@@ -11,6 +11,7 @@
         body { margin:0; padding:0; background:#F7F3EE; color:#2C2416; font-family:'Georgia',serif; }
         ::-webkit-scrollbar { height: 4px; }
         ::-webkit-scrollbar-thumb { background: #8FAF7E; border-radius: 2px; }
+        input, select, textarea { box-sizing: border-box !important; }
     </style>
 </head>
 <body>
@@ -60,10 +61,10 @@
           btnP:{background:R.birincil,color:"#fff",border:"none",borderRadius:7,padding:"10px 18px",cursor:"pointer",fontFamily:"inherit",fontSize:14,fontWeight:"600"},
           btnS:{background:"#E2D9CD",color:R.metin,border:"none",borderRadius:7,padding:"10px 18px",cursor:"pointer",fontFamily:"inherit",fontSize:14},
           btnD:{background:R.tehlike,color:"#fff",border:"none",borderRadius:7,padding:"8px 14px",cursor:"pointer",fontFamily:"inherit",fontSize:13},
-          input:{width:"100%",padding:"12px 14px",border:`1px solid ${R.sinir}`,borderRadius:8,fontFamily:"inherit",fontSize:14,background:R.formZemin,color:R.metin,boxSizing:"border-box"},
+          input:{width:"100%",padding:"12px 14px",border:`1px solid ${R.sinir}`,borderRadius:8,fontFamily:"inherit",fontSize:14,background:R.formZemin,color:R.metin,outline:"none"},
           label:{display:"block",fontSize:12,fontWeight:"700",color:R.metinAcik,marginBottom:6,textTransform:"uppercase",letterSpacing:0.5},
-          g2:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12},
-          g3:{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12},
+          g2:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:14},
+          g3:{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12,marginBottom:14},
           table:{width:"100%",borderCollapse:"collapse",fontSize:14},
           th:{textAlign:"left",padding:"10px 12px",background:R.zemin,borderBottom:`2px solid ${R.sinir}`,fontSize:12,fontWeight:"700",color:R.metinAcik,textTransform:"uppercase",letterSpacing:0.4},
           td:{padding:"10px 12px",borderBottom:`1px solid ${R.sinir}`,verticalAlign:"middle"},
@@ -74,7 +75,7 @@
 
         function F({label, children, required}) {
           return (
-            <div style={{marginBottom:14}}>
+            <div style={{width:"100%"}}>
               <label style={S.label}>{label} {required && "*"}</label>
               {children}
             </div>
@@ -301,8 +302,12 @@
                 <div style={S.g2}>
                   <F label="KÜPE NO" required><input style={S.input} value={form.kupeNo} onChange={e=>setForm({...form,kupeNo:e.target.value})}/></F>
                   <F label="İSİM"><input style={S.input} value={form.isim} onChange={e=>setForm({...form,isim:e.target.value})}/></F>
+                </div>
+                <div style={S.g2}>
                   <F label="CİNS"><input style={S.input} value={form.cins} onChange={e=>setForm({...form,cins:e.target.value})}/></F>
                   <F label="YAŞ"><input style={S.input} type="number" value={form.yas} onChange={e=>setForm({...form,yas:e.target.value})}/></F>
+                </div>
+                <div style={S.g2}>
                   <F label="CİNSİYET"><select style={S.input} value={form.cinsiyet} onChange={e=>setForm({...form,cinsiyet:e.target.value})}><option>Dişi</option><option>Erkek</option></select></F>
                   <F label="AĞIRLIK (KG)"><input style={S.input} type="number" value={form.agirlik} onChange={e=>setForm({...form,agirlik:e.target.value})}/></F>
                 </div>
@@ -317,7 +322,6 @@
           );
         }
 
-        // Son Ekran Görüntüsündeki Orijinal Formatlı Yeni Finansal İşlem Formu
         function KasaIslemleri({islemler,setIslemler}){
           const bos={tarih:bugun(),tip:"Gider",kategori:"Yem",tutar:"",aciklama:""};
           const [modal,setModal]=useState(false);
@@ -349,7 +353,7 @@
 
               {/* Son Görseldeki Birebir Form Yapısı */}
               {modal&&<Modal title="Yeni Finansal İşlem" onClose={()=>setModal(false)} onSave={kaydet}>
-                <div style={S.g2}>
+                <div style={{...S.g2, display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:14}}>
                   <F label="TARİH">
                     <input style={S.input} type="date" value={form.tarih} onChange={e=>setForm({...form,tarih:e.target.value})}/>
                   </F>
@@ -360,7 +364,7 @@
                     </select>
                   </F>
                 </div>
-                <div style={S.g2}>
+                <div style={{...S.g2, display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:14}}>
                   <F label="KATEGORİ">
                     <input style={S.input} value={form.kategori} onChange={e=>setForm({...form,kategori:e.target.value})} placeholder="Yem"/>
                   </F>
@@ -368,9 +372,11 @@
                     <input style={S.input} type="number" value={form.tutar} onChange={e=>setForm({...form,tutar:e.target.value})}/>
                   </F>
                 </div>
-                <F label="AÇIKLAMA">
-                  <input style={S.input} value={form.aciklama} onChange={e=>setForm({...form,aciklama:e.target.value})}/>
-                </F>
+                <div style={{marginBottom:14}}>
+                  <F label="AÇIKLAMA">
+                    <input style={S.input} value={form.aciklama} onChange={e=>setForm({...form,aciklama:e.target.value})}/>
+                  </F>
+                </div>
               </Modal>}
             </div>
           );
@@ -409,6 +415,8 @@
                 <div style={S.g2}>
                   <F label="HAYVAN (DİŞİ)" required><select style={S.input} value={form.kupeNo} onChange={e=>setForm({...form,kupeNo:e.target.value})}><option value="">Seçiniz...</option>{hayvanlar.filter(h=>h.cinsiyet==="Dişi").map(h=><option key={h.kupeNo} value={h.kupeNo}>{h.kupeNo}</option>)}</select></F>
                   <F label="DÖLLENME TARİHİ"><input style={S.input} type="date" value={form.dollenme} onChange={e=>tarihkur(e.target.value)}/></F>
+                </div>
+                <div style={S.g2}>
                   <F label="TAHMİNİ DOĞUM"><input style={S.input} type="date" value={form.tahminiDogum} readOnly/></F>
                 </div>
               </Modal>}
@@ -447,8 +455,12 @@
                 <div style={S.g2}>
                   <F label="HAYVAN"><select style={S.input} value={form.kupeNo} onChange={e=>setForm({...form,kupeNo:e.target.value})}><option value="">Seçiniz...</option>{hayvanlar.map(h=><option key={h.kupeNo} value={h.kupeNo}>{h.kupeNo}</option>)}</select></F>
                   <F label="TARİH"><input style={S.input} type="date" value={form.tarih} onChange={e=>setForm({...form,tarih:e.target.value})}/></F>
+                </div>
+                <div style={S.g2}>
                   <F label="TÜR"><select style={S.input} value={form.tip} onChange={e=>setForm({...form,tip:e.target.value})}><option>Aşı</option><option>Tedavi</option></select></F>
                   <F label="İLAÇ ADI"><input style={S.input} value={form.ilacAd} onChange={e=>setForm({...form,ilacAd:e.target.value})}/></F>
+                </div>
+                <div style={S.g2}>
                   <F label="TEKRAR TARİHİ"><input style={S.input} type="date" value={form.tekrarTarihi} onChange={e=>setForm({...form,tekrarTarihi:e.target.value})}/></F>
                 </div>
               </Modal>}
@@ -488,7 +500,9 @@
                   <F label="DOĞUM TARİHİ"><input style={S.input} type="date" value={form.tarih} onChange={e=>setForm({...form,tarih:e.target.value})}/></F>
                   <F label="YAVRU SAYISI"><input style={S.input} type="number" min="1" value={form.yavrular} onChange={e=>setForm({...form,yavrular:e.target.value})}/></F>
                 </div>
-                <F label="NOTLAR"><input style={S.input} value={form.notlar} onChange={e=>setForm({...form,notlar:e.target.value})}/></F>
+                <div style={{marginTop:14}}>
+                  <F label="NOTLAR"><input style={S.input} value={form.notlar} onChange={e=>setForm({...form,notlar:e.target.value})}/></F>
+                </div>
               </Modal>}
             </div>
           );
@@ -508,7 +522,7 @@
 
           return(
             <div style={S.card}>
-              <div style={S.row}><h2 style={S.h2}>🌾 Rasyon & Yem Reçeteleri</h2><button style={S.btnP} onClick={()=>true}>+ Rasyon Reçetesi</button></div>
+              <div style={S.row}><h2 style={S.h2}>🌾 Rasyon & Yem Reçeteleri</h2><button style={S.btnP} onClick={()=>setModal(true)}>+ Rasyon Reçetesi</button></div>
               <div style={{overflowX:"auto"}}>
                 <table style={S.table}>
                   <thead><tr>{["Rasyon Adı", "Grup", "Sıklık", "Malzeme (kg)", "Değişim"].map(h=><th key={h} style={S.th}>{h}</th>)}</tr></thead>
@@ -525,26 +539,32 @@
               </div>
 
               {modal&&<Modal title="Yeni Rasyon" onClose={()=>setModal(false)} onSave={kaydet}>
-                <F label="RASYON ADI" required>
-                  <input style={S.input} value={form.isim} onChange={e=>setForm({...form,isim:e.target.value})} placeholder="Günlük süt koyunu rasyonu"/>
-                </F>
-                <F label="HAYVAN GRUBU">
-                  <select style={S.input} value={form.hayvanGrubu} onChange={e=>setForm({...form,hayvanGrubu:e.target.value})}><option>Tüm Sürü</option><option>Kuzular</option><option>Gebe Koyunlar</option><option>Süt Koyunları</option></select>
-                </F>
-                <F label="SIKLIK">
-                  <select style={S.input} value={form.siklik} onChange={e=>setForm({...form,siklik:e.target.value})}><option>Günlük</option><option>Haftalık</option><option>Aylık</option></select>
-                </F>
+                <div style={{marginBottom:14}}>
+                  <F label="RASYON ADI" required>
+                    <input style={S.input} value={form.isim} onChange={e=>setForm({...form,isim:e.target.value})} placeholder="Günlük süt koyunu rasyonu"/>
+                  </F>
+                </div>
+                <div style={{marginBottom:14}}>
+                  <F label="HAYVAN GRUBU">
+                    <select style={S.input} value={form.hayvanGrubu} onChange={e=>setForm({...form,hayvanGrubu:e.target.value})}><option>Tüm Sürü</option><option>Kuzular</option><option>Gebe Koyunlar</option><option>Süt Koyunları</option></select>
+                  </F>
+                </div>
+                <div style={{marginBottom:14}}>
+                  <F label="SIKLIK">
+                    <select style={S.input} value={form.siklik} onChange={e=>setForm({...form,siklik:e.target.value})}><option>Günlük</option><option>Haftalık</option><option>Aylık</option></select>
+                  </F>
+                </div>
                 <div style={{marginBottom:14}}>
                   <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:6}}>
                     <label style={S.label}>MALZEMELER (KG)</label>
-                    <button style={{...S.btnS, padding:"4px 8px", fontSize:11}} type="button">+ Malzeme Ekle</button>
+                    <button style={{...S.btnS, padding:"4px 8px", fontSize:11, background:"#E2D9CD", border:"none", borderRadius:4, cursor:"pointer"}} type="button">+ Malzeme Ekle</button>
                   </div>
                   <div style={{display:"flex", gap:8}}>
                     <input style={{...S.input, flex:2}} value={form.malzemeAd} onChange={e=>setForm({...form,malzemeAd:e.target.value})} placeholder="Malzeme adı (kuru ot, kepek...)"/>
                     <input style={{...S.input, flex:1}} value={form.malzemeKg} onChange={e=>setForm({...form,malzemeKg:e.target.value})} placeholder="kg" type="number"/>
                   </div>
                 </div>
-                <div style={S.g2}>
+                <div style={{...S.g2, display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:14}}>
                   <F label="BAŞLANGIÇ TARİHİ"><input style={S.input} type="date" value={form.baslangicTarih} onChange={e=>setForm({...form,baslangicTarih:e.target.value})}/></F>
                   <F label="SONRAKİ DEĞİŞİM"><input style={S.input} type="date" value={form.sonrakiDegisim} onChange={e=>setForm({...form,sonrakiDegisim:e.target.value})}/></F>
                 </div>
@@ -584,7 +604,7 @@
                     <div style={{ fontSize: 13, opacity: 0.85, marginTop: 2 }}>{hayvanlar.length} hayvan kayıtlı</div>
                   </div>
                 </div>
-                <button style={{...S.btnS, background: "rgba(255,255,255,0.2)", color: "#fff", border: "none", borderRadius:7, padding:"10px 18px", fontWeight:"600"}} onClick={() => exportExcel(hayvanlar, islemler, saglik, dogumlar, dollenme, rasyonlar)}> cake Excel (CSV) Çıktısı</button>
+                <button style={{...S.btnS, background: "rgba(255,255,255,0.2)", color: "#fff", border: "none", borderRadius:7, padding:"10px 18px", fontWeight:"600", cursor:"pointer"}} onClick={() => exportExcel(hayvanlar, islemler, saglik, dogumlar, dollenme, rasyonlar)}>🎂 Excel (CSV) Çıktısı</button>
               </div>
 
               <div style={S.nav}>
